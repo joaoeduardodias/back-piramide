@@ -12,7 +12,7 @@ import {
 } from 'fastify-type-provider-zod';
 import { env } from '../env';
 import { errorHandler } from './error-handler';
-import { authenticateWithGoogle, authenticateWithPassword, createUser, getProfile, requestPasswordRecover, resetPassword } from './routes';
+import { authenticateWithGoogle, authenticateWithPassword, createProduct, createUser, deleteProduct, getAllProducts, getProductById, getProductBySlug, getProfile, requestPasswordRecover, resetPassword, updateProduct } from './routes';
 
 const app = fastify().withTypeProvider<ZodTypeProvider>();
 
@@ -59,7 +59,13 @@ app.register(getProfile)
 app.register(requestPasswordRecover)
 app.register(resetPassword)
 
-
+// product routes
+app.register(createProduct)
+app.register(updateProduct)
+app.register(deleteProduct)
+app.register(getProductById)
+app.register(getProductBySlug)
+app.register(getAllProducts)
 
 
 
