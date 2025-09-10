@@ -1,13 +1,12 @@
-import { prisma } from "@/lib/prisma";
-import type { FastifyInstance } from "fastify";
-import type { ZodTypeProvider } from "fastify-type-provider-zod";
-import z from "zod/v4";
-import { BadRequestError } from "../_errors/bad-request-error";
+import { prisma } from '@/lib/prisma'
+import type { FastifyInstance } from 'fastify'
+import type { ZodTypeProvider } from 'fastify-type-provider-zod'
+import z from 'zod/v4'
+import { BadRequestError } from '../_errors/bad-request-error'
 
 const productIdParamsSchema = z.object({
-  id: z.uuid("Invalid product ID"),
-});
-
+  id: z.uuid('Invalid product ID'),
+})
 
 export async function deleteProduct(app: FastifyInstance) {
   app.withTypeProvider<ZodTypeProvider>().delete('/products/:id',
@@ -17,31 +16,31 @@ export async function deleteProduct(app: FastifyInstance) {
         summary: 'Delete an product',
         params: productIdParamsSchema,
         response: {
-          204: z.null()
-        }
-      }
+          204: z.null(),
+        },
+      },
 
     },
     async (request, reply) => {
-      const { id } = request.params;
+      const { id } = request.params
 
       const existingProduct = await prisma.product.findUnique({
-        where: { id }
-      });
+        where: { id },
+      })
 
       if (!existingProduct) {
-        throw new BadRequestError("Product not found.");
+        throw new BadRequestError('Product not found.')
       }
 
       try {
         await prisma.product.delete({
-          where: { id }
-        });
+          where: { id },
+        })
 
-        return reply.status(204).send();
-      } catch (error) {
-        throw new BadRequestError("Failed to delete product.");
+        return reply.status(204).send()
+      } catch {
+        throw new BadRequestError('Failed to delete product.')
       }
-    }
-  );
+    },
+  )
 }

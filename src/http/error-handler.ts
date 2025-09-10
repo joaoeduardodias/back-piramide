@@ -1,7 +1,7 @@
-import type { FastifyInstance } from "fastify"
-import { ZodError } from "zod/v4"
-import { BadRequestError } from "./routes/_errors/bad-request-error"
-import { UnauthorizedError } from "./routes/_errors/unauthorized-error"
+import type { FastifyInstance } from 'fastify'
+import { ZodError } from 'zod/v4'
+import { BadRequestError } from './routes/_errors/bad-request-error'
+import { UnauthorizedError } from './routes/_errors/unauthorized-error'
 
 type FastifyErrorHandler = FastifyInstance['errorHandler']
 
@@ -25,5 +25,5 @@ export const errorHandler: FastifyErrorHandler = (error, _, reply) => {
 
   // send error to some observability platform
 
-  return reply.status(500).send({ message: "Internal server error" })
+  return reply.status(500).send({ message: 'Internal server error' })
 }

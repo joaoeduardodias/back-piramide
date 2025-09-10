@@ -1,20 +1,41 @@
-import fastifyCors from '@fastify/cors';
-import fastifyJwt from '@fastify/jwt';
-import fastifySwagger from '@fastify/swagger';
-import fastifySwaggerUi from '@fastify/swagger-ui';
+import fastifyCors from '@fastify/cors'
+import fastifyJwt from '@fastify/jwt'
+import fastifySwagger from '@fastify/swagger'
+import fastifySwaggerUi from '@fastify/swagger-ui'
 
-import { fastify } from 'fastify';
+import { fastify } from 'fastify'
 import {
   jsonSchemaTransform,
   serializerCompiler,
   validatorCompiler,
-  type ZodTypeProvider
-} from 'fastify-type-provider-zod';
-import { env } from '../env';
-import { errorHandler } from './error-handler';
-import { authenticateWithGoogle, authenticateWithPassword, createProduct, createUser, deleteProduct, getAllProducts, getProductById, getProductBySlug, getProfile, requestPasswordRecover, resetPassword, updateProduct } from './routes';
+  type ZodTypeProvider,
+} from 'fastify-type-provider-zod'
+import { env } from '../env'
+import { errorHandler } from './error-handler'
+import {
+  authenticateWithGoogle,
+  authenticateWithPassword,
+  createOrder,
+  createProduct,
+  createUser,
+  deleteOrder,
+  deleteProduct,
+  getAllProducts,
+  getOrderById,
+  getOrders,
+  getOrdersByCustomer,
+  getProductById,
+  getProductBySlug,
+  getProfile,
+  requestPasswordRecover,
+  resetPassword,
+  updateOrder,
+  updateOrderStatus,
+  updateProduct,
+  updateStatusOrderToCancel,
+} from './routes'
 
-const app = fastify().withTypeProvider<ZodTypeProvider>();
+const app = fastify().withTypeProvider<ZodTypeProvider>()
 
 app.setSerializerCompiler(serializerCompiler)
 app.setValidatorCompiler(validatorCompiler)
@@ -34,16 +55,16 @@ app.register(fastifySwagger, {
           type: 'http',
           scheme: 'bearer',
           bearerFormat: 'JWT',
-        }
-      }
-    }
+        },
+      },
+    },
   },
   transform: jsonSchemaTransform,
-});
+})
 
 app.register(fastifySwaggerUi, {
   routePrefix: '/docs',
-});
+})
 
 // CORS
 app.register(fastifyCors)
@@ -67,9 +88,17 @@ app.register(getProductById)
 app.register(getProductBySlug)
 app.register(getAllProducts)
 
+// orders routes
 
-
+app.register(createOrder)
+app.register(deleteOrder)
+app.register(getOrdersByCustomer)
+app.register(getOrderById)
+app.register(getOrders)
+app.register(updateOrder)
+app.register(updateOrderStatus)
+app.register(updateStatusOrderToCancel)
 
 app.listen({ port: env.SERVER_PORT }).then(() => {
-  console.log(`HTTP server running on http://localhost:${env.SERVER_PORT}`);
+  console.log(`HTTP server running on http://localhost:${env.SERVER_PORT}`)
 })

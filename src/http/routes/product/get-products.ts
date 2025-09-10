@@ -1,18 +1,20 @@
-import { prisma } from "@/lib/prisma";
-import { ProductStatus } from "@prisma/client";
-import { Decimal } from "@prisma/client/runtime/library";
-import type { FastifyInstance } from "fastify";
-import type { ZodTypeProvider } from "fastify-type-provider-zod";
-import z from "zod/v4";
-import { BadRequestError } from "../_errors/bad-request-error";
-
+import { prisma } from '@/lib/prisma'
+import type { Prisma } from '@prisma/client'
+import { ProductStatus } from '@prisma/client'
+import { Decimal } from '@prisma/client/runtime/library'
+import type { FastifyInstance } from 'fastify'
+import type { ZodTypeProvider } from 'fastify-type-provider-zod'
+import z from 'zod/v4'
+import { BadRequestError } from '../_errors/bad-request-error'
 const getProductsQuerySchema = z.object({
-  page: z.string().transform(val => parseInt(val)).pipe(z.number().int().min(1)).default(1),
-  limit: z.string().transform(val => parseInt(val)).pipe(z.number().int().min(1).max(100)).default(10),
+  page: z.string().transform(val =>
+    parseInt(val)).pipe(z.number().int().min(1)).default(1),
+  limit: z.string().transform(val =>
+    parseInt(val)).pipe(z.number().int().min(1).max(100)).default(10),
   status: z.enum(ProductStatus).optional(),
   categoryId: z.uuid().optional(),
-  search: z.string().optional()
-});
+  search: z.string().optional(),
+})
 
 const productsResponseSchema = z.object({
   products: z.array(z.object({
@@ -37,7 +39,7 @@ const productsResponseSchema = z.object({
           createdAt: z.date(),
           updatedAt: z.date(),
         }),
-      })
+      }),
     ),
 
     images: z.array(
@@ -49,7 +51,7 @@ const productsResponseSchema = z.object({
         productId: z.uuid(),
         createdAt: z.date(),
         optionValueId: z.string().uuid().nullable(),
-      })
+      }),
     ),
 
     variants: z.array(
@@ -61,7 +63,7 @@ const productsResponseSchema = z.object({
         productId: z.uuid(),
         createdAt: z.date(),
         updatedAt: z.date(),
-      })
+      }),
     ),
   })),
   pagination: z.object({
@@ -70,11 +72,10 @@ const productsResponseSchema = z.object({
     total: z.number().int(),
     totalPages: z.number().int(),
     hasNext: z.boolean(),
-    hasPrev: z.boolean()
-  })
+    hasPrev: z.boolean(),
+  }),
 
-});
-
+})
 
 export async function getAllProducts(app: FastifyInstance) {
   app.withTypeProvider<ZodTypeProvider>().get('/products',
@@ -83,31 +84,33 @@ export async function getAllProducts(app: FastifyInstance) {
         tags: ['Products'],
         summary: 'List products',
         querystring: getProductsQuerySchema,
-        response: productsResponseSchema
-      }
+        response: {
+          200: productsResponseSchema,
+        },
+      },
     },
     async (request, reply) => {
-      const { page, limit, status, categoryId, search } = request.query;
+      const { page, limit, status, categoryId, search } = request.query
 
-      const skip = (page - 1) * limit;
-      const where: any = {};
+      const skip = (page - 1) * limit
+      const where: Prisma.ProductWhereInput = {}
       if (status) {
-        where.status = status;
+        where.status = status
       }
 
       if (categoryId) {
         where.categories = {
           some: {
-            categoryId
-          }
-        };
+            categoryId,
+          },
+        }
       }
 
       if (search) {
         where.OR = [
           { name: { contains: search, mode: 'insensitive' } },
-          { description: { contains: search, mode: 'insensitive' } }
-        ];
+          { description: { contains: search, mode: 'insensitive' } },
+        ]
       }
 
       try {
@@ -119,20 +122,20 @@ export async function getAllProducts(app: FastifyInstance) {
             include: {
               categories: {
                 include: {
-                  category: true
-                }
+                  category: true,
+                },
               },
               images: {
-                orderBy: { sortOrder: 'asc' }
+                orderBy: { sortOrder: 'asc' },
               },
-              variants: true
+              variants: true,
             },
-            orderBy: { createdAt: 'desc' }
+            orderBy: { createdAt: 'desc' },
           }),
-          prisma.product.count({ where })
-        ]);
+          prisma.product.count({ where }),
+        ])
 
-        const totalPages = Math.ceil(total / limit);
+        const totalPages = Math.ceil(total / limit)
 
         return reply.send({
           products,
@@ -142,12 +145,12 @@ export async function getAllProducts(app: FastifyInstance) {
             total,
             totalPages,
             hasNext: page < totalPages,
-            hasPrev: page > 1
-          }
-        });
-      } catch (error) {
-        throw new BadRequestError("Failed to fetch all products.");
+            hasPrev: page > 1,
+          },
+        })
+      } catch {
+        throw new BadRequestError('Failed to fetch all products.')
       }
-    }
-  );
+    },
+  )
 }
