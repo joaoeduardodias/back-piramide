@@ -94,6 +94,7 @@ export async function authenticateWithGoogle(app: FastifyInstance) {
     const token = await reply.jwtSign(
       {
         sub: user.id,
+        role: user.role,
       },
       {
         sign: {

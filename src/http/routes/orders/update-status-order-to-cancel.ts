@@ -66,6 +66,9 @@ export async function updateStatusOrderToCancel(app: FastifyInstance) {
         tags: ['Orders'],
         summary: 'Cancel order',
         params: orderIdParamsSchema,
+        security: [
+          { bearerAuth: [] },
+        ],
         response: {
           200: responseOrderSchema,
         },

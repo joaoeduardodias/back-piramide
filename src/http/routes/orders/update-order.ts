@@ -82,6 +82,9 @@ export async function updateOrder(app: FastifyInstance) {
         summary: 'Update order',
         params: orderIdParamsSchema,
         body: updateOrderSchema,
+        security: [
+          { bearerAuth: [] },
+        ],
         response: {
           200: responseOrderSchema,
         },

@@ -62,6 +62,9 @@ export async function getOrderById(app: FastifyInstance) {
       schema: {
         tags: ['Orders'],
         summary: 'Get order by ID',
+        security: [
+          { bearerAuth: [] },
+        ],
         params: orderIdParamsSchema,
         response: {
           200: responseOrder,

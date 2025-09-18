@@ -83,6 +83,9 @@ export async function getOrders(app: FastifyInstance) {
       schema: {
         tags: ['Orders'],
         summary: 'List all orders',
+        security: [
+          { bearerAuth: [] },
+        ],
         querystring: getOrdersQuerySchema,
         response: {
           200: responseOrders,

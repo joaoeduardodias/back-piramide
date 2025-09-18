@@ -8,6 +8,7 @@ import { cartSubject } from './subjects/cart'
 import { categorySubject } from './subjects/category'
 import { orderSubject } from './subjects/order'
 import { productSubject } from './subjects/product'
+import { stockSubject } from './subjects/stock'
 import { userSubject } from './subjects/user'
 
 export * from './models/cart'
@@ -24,6 +25,7 @@ const appAbilitiesSchema = z.union([
   orderSubject,
   productSubject,
   userSubject,
+  stockSubject,
   z.tuple([z.literal('manage'), z.literal('all')]),
 ])
 

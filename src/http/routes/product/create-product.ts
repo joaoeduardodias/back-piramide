@@ -27,6 +27,9 @@ export async function createProduct(app: FastifyInstance) {
         tags: ['Products'],
         summary: 'Create product',
         body: createProductSchema,
+        security: [
+          { bearerAuth: [] },
+        ],
         response: {
           201: z.object({
             productId: z.uuid(),
@@ -73,19 +76,19 @@ export async function createProduct(app: FastifyInstance) {
             status,
             categories: categoryIds
               ? {
-                  create: categoryIds.map(categoryId => ({
-                    categoryId,
-                  })),
-                }
+                create: categoryIds.map(categoryId => ({
+                  categoryId,
+                })),
+              }
               : undefined,
             images: images
               ? {
-                  create: images.map(image => ({
-                    url: image.url,
-                    alt: image.alt,
-                    sortOrder: image.sortOrder,
-                  })),
-                }
+                create: images.map(image => ({
+                  url: image.url,
+                  alt: image.alt,
+                  sortOrder: image.sortOrder,
+                })),
+              }
               : undefined,
           },
           include: {

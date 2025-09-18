@@ -91,6 +91,9 @@ export async function getOrdersByCustomer(app: FastifyInstance) {
         summary: 'Get orders by customer customerId',
         params: orderCustomerIdParamsSchema,
         querystring: getOrdersQuerySchema,
+        security: [
+          { bearerAuth: [] },
+        ],
         response: {
           200: responseOrders,
         },

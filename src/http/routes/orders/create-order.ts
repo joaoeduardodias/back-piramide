@@ -26,6 +26,9 @@ export async function createOrder(app: FastifyInstance) {
         tags: ['Orders'],
         summary: 'Create  order',
         body: createOrderSchema,
+        security: [
+          { bearerAuth: [] },
+        ],
         response: {
           201: z.object({
             orderId: z.uuid(),

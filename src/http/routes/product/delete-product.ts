@@ -15,6 +15,9 @@ export async function deleteProduct(app: FastifyInstance) {
         tags: ['Products'],
         summary: 'Delete an product',
         params: productIdParamsSchema,
+        security: [
+          { bearerAuth: [] },
+        ],
         response: {
           204: z.null(),
         },

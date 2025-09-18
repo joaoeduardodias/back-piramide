@@ -17,6 +17,7 @@ export const permissions: Record<Role, PermissionsByRole> = {
   MANAGER: (_, { can }) => {
     can('update', 'Product')
     can('update', 'Order')
+    can('manage', 'Stock')
   },
 
   EDITOR: (_, { can }) => {
