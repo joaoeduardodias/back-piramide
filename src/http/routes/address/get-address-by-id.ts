@@ -42,7 +42,7 @@ export async function getAddressById(app: FastifyInstance) {
       const address = await prisma.address.findFirst({
         where: {
           id,
-          customerId: userId,
+          customerId: userId.sub,
         },
       })
 

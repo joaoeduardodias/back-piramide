@@ -21,16 +21,20 @@ import {
   checkout,
   clearCart,
   createAddress,
+  createCategory,
   createOrder,
   createProduct,
   createUser,
   deleteAddress,
+  deleteCategory,
   deleteOrder,
   deleteProduct,
   getAddressById,
   getAddresses,
   getAllProducts,
   getCart,
+  getCategories,
+  getCategoryById,
   getLowStockProducts,
   getOrderById,
   getOrders,
@@ -47,6 +51,7 @@ import {
   setDefaultAddress,
   updateAddress,
   updateCartItem,
+  updateCategory,
   updateOrder,
   updateOrderStatus,
   updateProduct,
@@ -145,6 +150,14 @@ app.register(getProductStock)
 app.register(getStockReport)
 app.register(getVariantStock)
 app.register(updateVariantStock)
+
+// categories router
+
+app.register(createCategory)
+app.register(updateCategory)
+app.register(deleteCategory)
+app.register(getCategories)
+app.register(getCategoryById)
 
 app.listen({ port: env.SERVER_PORT }).then(() => {
   console.log(`HTTP server running on http://localhost:${env.SERVER_PORT}`)

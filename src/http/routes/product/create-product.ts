@@ -10,7 +10,10 @@ const createProductSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   slug: z.string().min(1, 'Slug is required'),
   description: z.string().optional(),
+  tags: z.string().optional(),
+  emphases: z.boolean().default(false),
   price: z.number().positive('Price must be positive'),
+  comparePrice: z.number().positive('Price must be positive').optional(),
   status: ProductStatusEnum.default('DRAFT'),
   categoryIds: z.array(z.uuid()).optional(),
   images: z.array(z.object({
@@ -42,7 +45,10 @@ export async function createProduct(app: FastifyInstance) {
         name,
         slug,
         description,
+        tags,
+        emphases,
         price,
+        comparePrice,
         status,
         categoryIds,
         images,
@@ -53,7 +59,7 @@ export async function createProduct(app: FastifyInstance) {
       })
 
       if (existingProduct) {
-        throw new BadRequestError('Product with this slug already exists.')
+        throw new BadRequestError('Já existe um produto com este slug.')
       }
 
       if (categoryIds && categoryIds.length > 0) {
@@ -62,7 +68,7 @@ export async function createProduct(app: FastifyInstance) {
         })
 
         if (categories.length !== categoryIds.length) {
-          throw new BadRequestError('One or more categories do not exist.')
+          throw new BadRequestError('Uma ou mais categorias não existem.')
         }
       }
 
@@ -74,6 +80,9 @@ export async function createProduct(app: FastifyInstance) {
             description,
             price,
             status,
+            comparePrice,
+            emphases,
+            tags,
             categories: categoryIds
               ? {
                 create: categoryIds.map(categoryId => ({
@@ -106,7 +115,7 @@ export async function createProduct(app: FastifyInstance) {
           productId: product.id,
         })
       } catch {
-        throw new BadRequestError('Failed to create product.')
+        throw new BadRequestError('Falha ao criar produto.')
       }
     },
   )

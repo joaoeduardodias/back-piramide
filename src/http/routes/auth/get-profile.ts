@@ -31,7 +31,7 @@ export async function getProfile(app: FastifyInstance) {
         email: true,
       },
       where: {
-        id: userId,
+        id: userId.sub,
       },
     })
     if (!user) {

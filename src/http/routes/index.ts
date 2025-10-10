@@ -44,3 +44,9 @@ export { getStockReport } from './stock/get-stock-report'
 export { getVariantStock } from './stock/get-variant-stock'
 export { updateVariantStock } from './stock/variant-update-stock'
 
+export { createCategory } from './categories/create-category'
+export { deleteCategory } from './categories/delete-category'
+export { getCategories } from './categories/get-categories'
+export { getCategoryById } from './categories/get-category-by-id'
+export { updateCategory } from './categories/update-category'
+
