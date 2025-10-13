@@ -11,7 +11,6 @@ const updateCategoryParamsSchema = z.object({
 const updateCategorySchema = z.object({
   name: z.string().min(1, 'Name is required'),
   slug: z.string().min(1, 'Slug is required'),
-  description: z.string().optional(),
 })
 
 export async function updateCategory(app: FastifyInstance) {
@@ -32,7 +31,7 @@ export async function updateCategory(app: FastifyInstance) {
     },
     async (request, reply) => {
       const { id } = request.params
-      const { name, slug, description } = request.body
+      const { name, slug } = request.body
 
       const existingCategory = await prisma.category.findUnique({
         where: { id },
@@ -53,7 +52,7 @@ export async function updateCategory(app: FastifyInstance) {
           data: {
             name,
             slug,
-            description,
+
           },
         })
         return reply.status(204).send()

@@ -97,23 +97,23 @@ enum OrderStatus {
 }
 
 model Product {
-  id           String        @id @default(uuid())
+  id           String            @id @default(uuid())
   name         String
-  slug         String        @unique
+  slug         String            @unique
   description  String?
   tags         String?
-  emphases     Boolean?
-  price        Decimal       @db.Decimal(12, 2)
-  comparePrice Decimal?      @map("compare_price") @db.Decimal(12, 2)
-  status       ProductStatus @default(DRAFT)
-  createdAt    DateTime      @default(now()) @map("created_at")
-  updatedAt    DateTime      @updatedAt @map("updated_at")
-
-  images     ProductImage[]
-  categories ProductCategory[]
-  variants   ProductVariant[]
-  OrderItem  OrderItem[]
-  Option     Option[]
+  featured     Boolean?
+  price        Decimal           @db.Decimal(12, 2)
+  comparePrice Decimal?          @map("compare_price") @db.Decimal(12, 2)
+  status       ProductStatus     @default(DRAFT)
+  createdAt    DateTime          @default(now()) @map("created_at")
+  updatedAt    DateTime          @updatedAt @map("updated_at")
+  weight       Float?
+  images       ProductImage[]
+  categories   ProductCategory[]
+  variants     ProductVariant[]
+  OrderItem    OrderItem[]
+  options      Option[]
 
   @@map("product")
 }
@@ -133,14 +133,15 @@ model ProductImage {
 }
 
 model Category {
-  id          String   @id @default(uuid())
-  name        String
-  slug        String   @unique
-  description String?
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  id        String   @id @default(uuid())
+  name      String
+  slug      String   @unique
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   products ProductCategory[]
+
+  @@map("category")
 }
 
 model ProductCategory {
@@ -150,6 +151,7 @@ model ProductCategory {
   categoryId String
 
   @@id([productId, categoryId])
+  @@map("product_category")
 }
 
 model ProductVariant {
@@ -178,6 +180,7 @@ model Option {
   values OptionValue[]
 
   @@unique([productId, name])
+  @@map("options")
 }
 
 model OptionValue {
@@ -190,6 +193,7 @@ model OptionValue {
   ProductImage  ProductImage[]
 
   @@unique([optionId, value])
+  @@map("option_value")
 }
 
 model VariantOptionValue {
@@ -200,6 +204,7 @@ model VariantOptionValue {
   optionValueId String         @map("option_value_id")
 
   @@unique([variantId, optionValueId])
+  @@map("variant_option_value")
 }
 
 // pedidos

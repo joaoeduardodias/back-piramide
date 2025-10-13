@@ -19,22 +19,32 @@ const productResponseSchema = z.object({
   status: z.enum(ProductStatus),
   createdAt: z.date(),
   updatedAt: z.date(),
-
   categories: z.array(
     z.object({
       categoryId: z.uuid(),
-      productId: z.uuid(),
       category: z.object({
         id: z.uuid(),
         name: z.string(),
         slug: z.string(),
-        description: z.string().nullable(),
         createdAt: z.date(),
         updatedAt: z.date(),
       }),
     }),
   ),
-
+  options: z.array(
+    z.object({
+      id: z.uuid(),
+      name: z.string(),
+      productId: z.uuid(),
+      values: z.array(
+        z.object({
+          id: z.uuid(),
+          value: z.string(),
+          optionId: z.uuid(),
+        }),
+      ),
+    }),
+  ),
   images: z.array(
     z.object({
       id: z.uuid(),
@@ -43,19 +53,7 @@ const productResponseSchema = z.object({
       sortOrder: z.number().int(),
       productId: z.uuid(),
       createdAt: z.date(),
-      optionValueId: z.string().uuid().nullable(),
-    }),
-  ),
-
-  variants: z.array(
-    z.object({
-      id: z.uuid(),
-      price: z.instanceof(Decimal).nullable(),
-      sku: z.string().nullable(),
-      stock: z.number(),
-      productId: z.uuid(),
-      createdAt: z.date(),
-      updatedAt: z.date(),
+      optionValueId: z.uuid().nullable(),
     }),
   ),
 })
@@ -87,20 +85,8 @@ export async function getProductBySlug(app: FastifyInstance) {
             images: {
               orderBy: { sortOrder: 'asc' },
             },
-            variants: {
-              include: {
-                optionValues: {
-                  include: {
-                    optionValue: {
-                      include: {
-                        option: true,
-                      },
-                    },
-                  },
-                },
-              },
-            },
-            Option: {
+
+            options: {
               include: {
                 values: true,
               },

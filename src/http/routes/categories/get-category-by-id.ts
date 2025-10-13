@@ -12,7 +12,6 @@ const getCategoryByIdSchema = z.object({
   id: z.uuid(),
   name: z.string(),
   slug: z.string(),
-  description: z.string().nullable(),
   createdAt: z.date(),
   updatedAt: z.date(),
 })

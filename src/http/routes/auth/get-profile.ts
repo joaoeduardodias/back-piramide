@@ -1,5 +1,6 @@
 import { auth } from '@/http/middlewares/auth'
 import { prisma } from '@/lib/prisma'
+import { Role } from '@prisma/client'
 import type { FastifyInstance } from 'fastify'
 import type { ZodTypeProvider } from 'fastify-type-provider-zod'
 import { z } from 'zod/v4'
@@ -18,6 +19,7 @@ export async function getProfile(app: FastifyInstance) {
             id: z.uuid(),
             name: z.string().nullable(),
             email: z.email(),
+            role: z.enum(Role),
           }),
         }),
       },
@@ -29,6 +31,7 @@ export async function getProfile(app: FastifyInstance) {
         id: true,
         name: true,
         email: true,
+        role: true,
       },
       where: {
         id: userId.sub,

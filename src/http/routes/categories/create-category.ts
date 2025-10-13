@@ -7,8 +7,6 @@ import { BadRequestError } from '../_errors/bad-request-error'
 const createCategorySchema = z.object({
   name: z.string().min(1, 'Name is required'),
   slug: z.string().min(1, 'Slug is required'),
-  description: z.string().optional(),
-
 })
 
 export async function createCategory(app: FastifyInstance) {
@@ -32,8 +30,6 @@ export async function createCategory(app: FastifyInstance) {
       const {
         name,
         slug,
-        description,
-
       } = request.body
 
       const existingCategory = await prisma.category.findUnique({
@@ -49,7 +45,6 @@ export async function createCategory(app: FastifyInstance) {
           data: {
             name,
             slug,
-            description,
           },
         })
 
