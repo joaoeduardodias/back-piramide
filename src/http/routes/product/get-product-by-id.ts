@@ -14,12 +14,13 @@ const productResponseSchema = z.object({
   id: z.uuid(),
   name: z.string(),
   slug: z.string(),
+  sales: z.number(),
   description: z.string().nullable(),
   price: z.instanceof(Decimal),
   status: z.enum(ProductStatus),
   createdAt: z.date(),
   updatedAt: z.date(),
-
+  weight: z.number().nullable(),
   categories: z.array(
     z.object({
       categoryId: z.uuid(),
@@ -67,7 +68,7 @@ export async function getProductById(app: FastifyInstance) {
         summary: 'Get product by ID',
         params: productIdParamsSchema,
         response: {
-          200: productResponseSchema,
+          // 200: productResponseSchema,
         },
       },
     },
@@ -76,21 +77,27 @@ export async function getProductById(app: FastifyInstance) {
       try {
         const product = await prisma.product.findUnique({
           where: { id },
-          include: {
-            categories: {
-              include: {
-                category: true,
-              },
-            },
-            images: {
-              orderBy: { sortOrder: 'asc' },
-            },
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            price: true,
+            comparePrice: true,
+            featured: true,
+            weight: true,
             variants: {
-              include: {
+              select: {
+                stock: true,
+                orderItems: true,
+                price: true,
+                comparePrice: true,
+                id: true,
+                sku: true,
                 optionValues: {
-                  include: {
+                  select: {
+                    id: true,
                     optionValue: {
-                      include: {
+                      select: {
                         option: true,
                       },
                     },
@@ -98,12 +105,41 @@ export async function getProductById(app: FastifyInstance) {
                 },
               },
             },
-            options: {
-              include: {
-                values: true,
-              },
-            },
+            // options: {
+            //   select: {
+            //     name: true,
+            //     values: true,
+            //   },
+            // },
           },
+          // include: {
+          //   categories: {
+          //     include: {
+          //       category: true,
+          //     },
+          //   },
+          //   images: {
+          //     orderBy: { sortOrder: 'asc' },
+          //   },
+          //   variants: {
+          //     include: {
+          //       optionValues: {
+          //         include: {
+          //           optionValue: {
+          //             include: {
+          //               option: true,
+          //             },
+          //           },
+          //         },
+          //       },
+          //     },
+          //   },
+          //   options: {
+          //     include: {
+          //       values: true,
+          //     },
+          //   },
+          // },
         })
 
         if (!product) {

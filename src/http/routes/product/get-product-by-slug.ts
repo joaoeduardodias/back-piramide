@@ -14,6 +14,7 @@ const productResponseSchema = z.object({
   id: z.uuid(),
   name: z.string(),
   slug: z.string(),
+  sales: z.number(),
   description: z.string().nullable(),
   price: z.instanceof(Decimal),
   status: z.enum(ProductStatus),

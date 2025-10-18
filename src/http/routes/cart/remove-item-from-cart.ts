@@ -29,7 +29,7 @@ export async function removeFromCart(app: FastifyInstance) {
         where: {
           id,
           order: {
-            customerId: userId,
+            customerId: userId.sub,
             status: 'PENDING',
           },
         },

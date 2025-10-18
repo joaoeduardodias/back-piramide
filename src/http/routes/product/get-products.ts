@@ -21,13 +21,13 @@ const productsResponseSchema = z.object({
     id: z.uuid(),
     name: z.string(),
     slug: z.string(),
+    sales: z.number(),
     featured: z.boolean().nullable(),
     description: z.string().nullable(),
     price: z.instanceof(Decimal),
     status: z.enum(ProductStatus),
     createdAt: z.date(),
     updatedAt: z.date(),
-
     categories: z.array(
       z.object({
         categoryId: z.uuid(),
@@ -41,7 +41,6 @@ const productsResponseSchema = z.object({
         }),
       }),
     ),
-
     images: z.array(
       z.object({
         id: z.uuid(),
@@ -53,12 +52,11 @@ const productsResponseSchema = z.object({
         optionValueId: z.string().uuid().nullable(),
       }),
     ),
-
     variants: z.array(
       z.object({
         id: z.uuid(),
         price: z.instanceof(Decimal).nullable(),
-        sku: z.string().nullable(),
+        sku: z.string(),
         stock: z.number(),
         productId: z.uuid(),
         createdAt: z.date(),

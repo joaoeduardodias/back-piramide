@@ -9,11 +9,18 @@ const getCategoryByIdParamsSchema = z.object({
 })
 
 const getCategoryByIdSchema = z.object({
-  id: z.uuid(),
-  name: z.string(),
-  slug: z.string(),
-  createdAt: z.date(),
-  updatedAt: z.date(),
+  category: z.object({
+    id: z.uuid(),
+    name: z.string(),
+    slug: z.string(),
+    products: z.array(z.object({
+      product: z.object({
+        id: z.uuid(),
+        name: z.string(),
+      }),
+    }),
+    ),
+  }),
 })
 
 export async function getCategoryById(app: FastifyInstance) {
@@ -47,8 +54,23 @@ export async function getCategoryById(app: FastifyInstance) {
           where: {
             id,
           },
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            products: {
+              select: {
+                product: {
+                  select: {
+                    name: true,
+                    id: true,
+                  },
+                },
+              },
+            },
+          },
         })
-        return reply.send(category)
+        return reply.send({ category })
       } catch {
         throw new BadRequestError('Falha ao Listar categoria.')
       }
