@@ -22,6 +22,7 @@ import {
   clearCart,
   createAddress,
   createCategory,
+  createOption,
   createOrder,
   createProduct,
   createUser,
@@ -31,6 +32,7 @@ import {
   deleteProduct,
   getAddressById,
   getAddresses,
+  getAllOptions,
   getAllProducts,
   getCart,
   getCategories,
@@ -111,6 +113,8 @@ app.register(deleteProduct)
 app.register(getProductById)
 app.register(getProductBySlug)
 app.register(getAllProducts)
+app.register(getAllOptions)
+app.register(createOption)
 
 // orders routes
 

@@ -1,5 +1,4 @@
 import { prisma } from '@/lib/prisma'
-import { ProductStatus } from '@prisma/client'
 import { Decimal } from '@prisma/client/runtime/library'
 import type { FastifyInstance } from 'fastify'
 import type { ZodTypeProvider } from 'fastify-type-provider-zod'
@@ -11,71 +10,66 @@ const productIdParamsSchema = z.object({
 })
 
 const productResponseSchema = z.object({
-  id: z.uuid(),
-  name: z.string(),
-  slug: z.string(),
-  sales: z.number(),
-  description: z.string().nullable(),
-  price: z.instanceof(Decimal),
-  status: z.enum(ProductStatus),
-  createdAt: z.date(),
-  updatedAt: z.date(),
-  weight: z.number().nullable(),
-  categories: z.array(
-    z.object({
-      categoryId: z.uuid(),
-      productId: z.uuid(),
-      category: z.object({
+  product: z.object({
+    id: z.uuid(),
+    name: z.string(),
+    description: z.string().nullable(),
+    price: z.instanceof(Decimal),
+    weight: z.number().nullable(),
+    variants: z.array(z.object({
+      id: z.uuid(),
+      price: z.instanceof(Decimal).nullable(),
+      sku: z.string(),
+      stock: z.number(),
+      comparePrice: z.instanceof(Decimal).nullable(),
+    })),
+
+    productOptions: z.array(z.object({
+      option: z.object({
         id: z.uuid(),
         name: z.string(),
-        slug: z.string(),
-        createdAt: z.date(),
-        updatedAt: z.date(),
+        values: z.array(z.object({
+          value: z.string(),
+          content: z.string().nullable(),
+        })),
       }),
-    }),
-  ),
-
-  images: z.array(
-    z.object({
+    })),
+    images: z.array(z.object({
       id: z.uuid(),
       url: z.string(),
       alt: z.string().nullable(),
-      sortOrder: z.number().int(),
-      productId: z.uuid(),
-      createdAt: z.date(),
-      optionValueId: z.string().uuid().nullable(),
-    }),
-  ),
-
-  variants: z.array(
-    z.object({
-      id: z.uuid(),
-      price: z.instanceof(Decimal).nullable(),
-      sku: z.string().nullable(),
-      stock: z.number(),
-      productId: z.uuid(),
-      createdAt: z.date(),
-      updatedAt: z.date(),
-    }),
-  ),
+      fileKey: z.string().nullable(),
+      sortOrder: z.number(),
+    })),
+    featured: z.boolean().nullable(),
+    comparePrice: z.instanceof(Decimal).nullable(),
+  }),
 })
 
 export async function getProductById(app: FastifyInstance) {
-  app.withTypeProvider<ZodTypeProvider>().get('/product/id/:id',
+  app.withTypeProvider<ZodTypeProvider>().get('/products/:id',
     {
       schema: {
         tags: ['Products'],
         summary: 'Get product by ID',
         params: productIdParamsSchema,
         response: {
-          // 200: productResponseSchema,
+          200: productResponseSchema,
         },
       },
     },
     async (request, reply) => {
       const { id } = request.params
+
+      const existingProduct = await prisma.product.findUnique({
+        where: { id },
+      })
+      if (!existingProduct) {
+        throw new BadRequestError('Produto não encontrado.')
+      }
+
       try {
-        const product = await prisma.product.findUnique({
+        const product = await prisma.product.findUniqueOrThrow({
           where: { id },
           select: {
             id: true,
@@ -88,66 +82,44 @@ export async function getProductById(app: FastifyInstance) {
             variants: {
               select: {
                 stock: true,
-                orderItems: true,
                 price: true,
                 comparePrice: true,
                 id: true,
                 sku: true,
-                optionValues: {
+              },
+            },
+            productOptions: {
+              select: {
+                option: {
                   select: {
                     id: true,
-                    optionValue: {
+                    name: true,
+                    values: {
                       select: {
-                        option: true,
+                        content: true,
+                        value: true,
                       },
                     },
                   },
                 },
               },
             },
-            // options: {
-            //   select: {
-            //     name: true,
-            //     values: true,
-            //   },
-            // },
+            images: {
+              select: {
+                alt: true,
+                fileKey: true,
+                id: true,
+                url: true,
+                sortOrder: true,
+              },
+            },
           },
-          // include: {
-          //   categories: {
-          //     include: {
-          //       category: true,
-          //     },
-          //   },
-          //   images: {
-          //     orderBy: { sortOrder: 'asc' },
-          //   },
-          //   variants: {
-          //     include: {
-          //       optionValues: {
-          //         include: {
-          //           optionValue: {
-          //             include: {
-          //               option: true,
-          //             },
-          //           },
-          //         },
-          //       },
-          //     },
-          //   },
-          //   options: {
-          //     include: {
-          //       values: true,
-          //     },
-          //   },
-          // },
+
         })
 
-        if (!product) {
-          throw new BadRequestError('Product not found.')
-        }
-
-        return reply.send(product)
-      } catch {
+        return reply.send({ product })
+      } catch (err) {
+        console.log(err)
         throw new BadRequestError('Failed to fetch product.')
       }
     },

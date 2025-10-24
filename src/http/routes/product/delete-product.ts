@@ -41,7 +41,8 @@ export async function deleteProduct(app: FastifyInstance) {
         })
 
         return reply.status(204).send()
-      } catch {
+      } catch (err) {
+        console.log(err)
         throw new BadRequestError('Failed to delete product.')
       }
     },

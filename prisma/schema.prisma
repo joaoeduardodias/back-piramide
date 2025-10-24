@@ -125,6 +125,7 @@ model ProductImage {
   productId     String       @map("product_id")
   url           String
   alt           String?
+  fileKey       String?      @map("file_key")
   sortOrder     Int          @default(0)
   optionValue   OptionValue? @relation(fields: [optionValueId], references: [id], onDelete: SetNull)
   optionValueId String?      @map("option_value_id")
@@ -187,22 +188,36 @@ model OptionValue {
   option   Option  @relation(fields: [optionId], references: [id], onDelete: Cascade)
   optionId String  @map("option_id")
 
-  variantValues VariantOptionValue[]
-  ProductImage  ProductImage[]
+  variantValues      VariantOptionValue[]
+  productImage       ProductImage[]
+  productOptionValue ProductOptionValue[]
 
   @@unique([optionId, value])
   @@map("option_value")
 }
 
 model ProductOption {
-  id        String  @id @default(uuid())
-  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
-  productId String  @map("product_id")
-  option    Option  @relation(fields: [optionId], references: [id], onDelete: Cascade)
-  optionId  String  @map("option_id")
+  id        String               @id @default(uuid())
+  product   Product              @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId String               @map("product_id")
+  option    Option               @relation(fields: [optionId], references: [id], onDelete: Cascade)
+  optionId  String               @map("option_id")
+  values    ProductOptionValue[]
 
   @@unique([productId, optionId])
   @@map("product_option")
+}
+
+model ProductOptionValue {
+  id              String        @id @default(uuid())
+  productOption   ProductOption @relation(fields: [productOptionId], references: [id], onDelete: Cascade)
+  productOptionId String        @map("product_option_id")
+
+  optionValue   OptionValue @relation(fields: [optionValueId], references: [id], onDelete: Cascade)
+  optionValueId String      @map("option_value_id")
+
+  @@unique([productOptionId, optionValueId])
+  @@map("product_option_value")
 }
 
 model VariantOptionValue {

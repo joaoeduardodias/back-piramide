@@ -19,21 +19,25 @@ const createProductSchema = z.object({
   status: z.enum(ProductStatus).default('DRAFT'),
   categoryIds: z.array(z.string().uuid()).optional(),
   images: z.array(z.object({
-    url: z.string().url(),
+    url: z.url(),
     alt: z.string().optional(),
     sortOrder: z.number().int().min(0).default(0),
+    fileKey: z.string().nullable(),
   })).optional(),
   options: z.array(z.object({
     name: z.string(),
-    values: z.array(z.string().min(1)),
-    content: z.array(z.string().min(1)).nullable(),
-  })).optional(),
+    values: z.array(z.object({
+      id: z.uuid(),
+      value: z.string(),
+      content: z.string().optional(),
+    })),
+  })),
   variants: z.array(z.object({
     sku: z.string(),
     price: z.number().optional(),
     comparePrice: z.number().optional(),
     stock: z.number().int().default(0),
-    optionValueIds: z.array(z.string().uuid()).optional(),
+    optionValueIds: z.array(z.uuid()).optional(),
   })).optional(),
 })
 
@@ -47,7 +51,7 @@ export async function createProduct(app: FastifyInstance) {
         security: [{ bearerAuth: [] }],
         response: {
           201: z.object({
-            productId: z.string().uuid(),
+            productId: z.uuid(),
           }),
         },
       },
@@ -65,6 +69,7 @@ export async function createProduct(app: FastifyInstance) {
         status,
         categoryIds,
         images,
+        variants,
         options,
       } = request.body
 
@@ -73,7 +78,6 @@ export async function createProduct(app: FastifyInstance) {
       })
 
       if (existingProduct) { throw new BadRequestError('Já existe um produto com este Nome.') }
-
       if (categoryIds?.length) {
         const categories = await prisma.category.findMany({
           where: { id: { in: categoryIds } },
@@ -81,10 +85,8 @@ export async function createProduct(app: FastifyInstance) {
 
         if (categories.length !== categoryIds.length) { throw new BadRequestError('Uma ou mais categorias não existem.') }
       }
-
       try {
         const product = await prisma.$transaction(async (tx) => {
-          // 1️⃣ Cria o produto
           const createdProduct = await tx.product.create({
             data: {
               name,
@@ -97,78 +99,108 @@ export async function createProduct(app: FastifyInstance) {
               weight,
               status,
               sales: 0,
-              categories: categoryIds
+              images: images?.length
                 ? {
-                  create: categoryIds.map(id => ({ categoryId: id })),
-                }
-                : undefined,
-              images: images
-                ? {
-                  create: images.map(img => ({
+                  create: images.map((img) => ({
                     url: img.url,
                     alt: img.alt,
                     sortOrder: img.sortOrder,
+                    fileKey: img.fileKey,
                   })),
                 }
                 : undefined,
             },
           })
 
-          // 2️⃣ Processa as options reutilizáveis
-          if (options?.length) {
+          if (categoryIds?.length) {
+            await tx.productCategory.createMany({
+              data: categoryIds.map((categoryId) => ({
+                productId: createdProduct.id,
+                categoryId,
+              })),
+              skipDuplicates: true,
+            })
+          }
+
+          if (variants?.length) {
+            const createdVariants = await Promise.all(
+              variants.map(async (variant) => {
+                return tx.productVariant.create({
+                  data: {
+                    productId: createdProduct.id,
+                    sku: variant.sku,
+                    price: variant.price ?? null,
+                    comparePrice: variant.comparePrice ?? null,
+                    stock: variant.stock ?? 0,
+                  },
+                })
+              }),
+            )
+
+            const variantOptionValuesData = createdVariants.flatMap((createdVariant, index) => {
+              const variant = variants[index]
+              if (!variant.optionValueIds?.length) return []
+
+              return variant.optionValueIds.map((optionValueId: string) => ({
+                variantId: createdVariant.id,
+                optionValueId,
+              }))
+            })
+
+            if (variantOptionValuesData.length) {
+              await tx.variantOptionValue.createMany({
+                data: variantOptionValuesData,
+                skipDuplicates: true,
+              })
+            }
+          }
+
+          if (options && options.length > 0) {
             for (const opt of options) {
-              // verifica se a Option já existe
-              let option = await tx.option.findUnique({
-                where: { name: opt.name },
-                include: { values: true },
+              const { name: optionName, values } = opt
+              if (!values?.length) continue
+
+              const option = await tx.option.findUnique({
+                where: { name: optionName },
+                select: { id: true },
               })
 
               if (!option) {
-                // cria a Option com seus valores
-                option = await tx.option.create({
-                  data: {
-                    name: opt.name,
-                    values: {
-                      create: opt.values.map((v, i) => ({
-                        value: v,
-                        content: opt.content?.[i] ?? null,
-                      })),
-                    },
-                  },
-                  include: { values: true },
-                })
-              } else {
-                // adiciona apenas os valores que não existem
-                const newValues = opt.values.filter(v => !option!.values.some(ev => ev.value === v))
-                if (newValues.length) {
-                  await tx.option.update({
-                    where: { id: option.id },
-                    data: {
-                      values: {
-                        create: newValues.map((v, i) => ({
-                          value: v,
-                          content: opt.content?.[i] ?? null,
-                        })),
-                      },
-                    },
-                  })
-                }
+                console.warn(`Opção "${optionName}" não encontrada no banco.`)
+                continue
               }
 
-              // 3️⃣ Relaciona a Option existente ao produto
-              await tx.productOption.upsert({
+              const productOption = await tx.productOption.upsert({
                 where: {
                   productId_optionId: {
                     productId: createdProduct.id,
                     optionId: option.id,
                   },
                 },
+                update: {},
                 create: {
                   productId: createdProduct.id,
                   optionId: option.id,
                 },
-                update: {},
               })
+
+              await Promise.all(
+                values.map((v) =>
+                  tx.productOptionValue.upsert({
+                    where: {
+                      productOptionId_optionValueId: {
+                        productOptionId: productOption.id,
+                        optionValueId: v.id,
+                      },
+                    },
+                    create: {
+                      productOptionId: productOption.id,
+                      optionValueId: v.id,
+                    },
+                    update: {},
+                  }),
+                ),
+              )
             }
           }
 

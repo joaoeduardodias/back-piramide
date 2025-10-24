@@ -21,47 +21,28 @@ const productsResponseSchema = z.object({
     id: z.uuid(),
     name: z.string(),
     slug: z.string(),
-    sales: z.number(),
     featured: z.boolean().nullable(),
     description: z.string().nullable(),
     price: z.instanceof(Decimal),
-    status: z.enum(ProductStatus),
-    createdAt: z.date(),
-    updatedAt: z.date(),
-    categories: z.array(
-      z.object({
-        categoryId: z.uuid(),
-        productId: z.uuid(),
-        category: z.object({
-          id: z.uuid(),
-          name: z.string(),
-          slug: z.string(),
-          createdAt: z.date(),
-          updatedAt: z.date(),
-        }),
-      }),
-    ),
-    images: z.array(
-      z.object({
+    comparePrice: z.instanceof(Decimal).nullable(),
+    categories: z.array(z.object({
+      category: z.object({
         id: z.uuid(),
-        url: z.string(),
-        alt: z.string().nullable(),
-        sortOrder: z.number().int(),
-        productId: z.uuid(),
-        createdAt: z.date(),
-        optionValueId: z.string().uuid().nullable(),
+        name: z.string(),
+        slug: z.string(),
       }),
-    ),
-    variants: z.array(
-      z.object({
-        id: z.uuid(),
-        price: z.instanceof(Decimal).nullable(),
-        sku: z.string(),
-        stock: z.number(),
-        productId: z.uuid(),
-        createdAt: z.date(),
-        updatedAt: z.date(),
-      }),
+    })),
+    images: z.array(z.object({
+      id: z.string(),
+      url: z.string(),
+      alt: z.string().nullable(),
+    })),
+    variants: z.array(z.object({
+      id: z.string(),
+      price: z.instanceof(Decimal).nullable(),
+      sku: z.string(),
+      stock: z.number(),
+    }),
     ),
   })),
   pagination: z.object({
@@ -72,7 +53,6 @@ const productsResponseSchema = z.object({
     hasNext: z.boolean(),
     hasPrev: z.boolean(),
   }),
-
 })
 
 export async function getAllProducts(app: FastifyInstance) {
@@ -117,17 +97,47 @@ export async function getAllProducts(app: FastifyInstance) {
             where,
             skip,
             take: limit,
-            include: {
-              categories: {
-                include: {
-                  category: true,
+            select: {
+              id: true,
+              name: true,
+              description: true,
+              featured: true,
+              price: true,
+              comparePrice: true,
+              slug: true,
+              images: {
+                orderBy: {
+                  sortOrder: 'asc',
+                },
+                select: {
+                  id: true,
+                  url: true,
+                  alt: true,
+
                 },
               },
-              images: {
-                orderBy: { sortOrder: 'asc' },
+              categories: {
+                select: {
+                  category: {
+                    select: {
+                      id: true,
+                      name: true,
+                      slug: true,
+                    },
+                  },
+                },
               },
-              variants: true,
+              variants: {
+                select: {
+                  id: true,
+                  price: true,
+                  sku: true,
+                  stock: true,
+
+                },
+              },
             },
+
             orderBy: { createdAt: 'desc' },
           }),
           prisma.product.count({ where }),
