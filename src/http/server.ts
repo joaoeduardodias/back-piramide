@@ -163,6 +163,6 @@ app.register(deleteCategory)
 app.register(getCategories)
 app.register(getCategoryById)
 
-app.listen({ port: env.PORT }).then(() => {
-  console.log(`HTTP server running on http://localhost:${env.PORT}`)
+app.listen({ port: env.PORT, host: '0.0.0.0' }, () => {
+  console.log(`🚀 HTTP server running on http://0.0.0.0:${env.PORT}`)
 })
