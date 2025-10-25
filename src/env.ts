@@ -5,7 +5,7 @@ const envSchema = z.object({
     .enum(['development', 'test', 'production'])
     .default('development'),
   DATABASE_URL: z.url(),
-  SERVER_PORT: z.string().default('3000').transform(Number),
+  PORT: z.string().default('3333').transform(Number),
   JWT_SECRET: z.string().min(6, 'JWT_SECRET deve ter no mínimo 06 caracteres'),
   GOOGLE_OAUTH_CLIENT_ID: z.string(),
   GOOGLE_OAUTH_CLIENT_SECRET: z.string(),

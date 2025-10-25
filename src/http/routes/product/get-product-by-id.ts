@@ -14,26 +14,10 @@ const productResponseSchema = z.object({
     id: z.uuid(),
     name: z.string(),
     description: z.string().nullable(),
+    featured: z.boolean(),
     price: z.instanceof(Decimal),
+    comparePrice: z.instanceof(Decimal).nullable(),
     weight: z.number().nullable(),
-    variants: z.array(z.object({
-      id: z.uuid(),
-      price: z.instanceof(Decimal).nullable(),
-      sku: z.string(),
-      stock: z.number(),
-      comparePrice: z.instanceof(Decimal).nullable(),
-    })),
-
-    productOptions: z.array(z.object({
-      option: z.object({
-        id: z.uuid(),
-        name: z.string(),
-        values: z.array(z.object({
-          value: z.string(),
-          content: z.string().nullable(),
-        })),
-      }),
-    })),
     images: z.array(z.object({
       id: z.uuid(),
       url: z.string(),
@@ -41,8 +25,23 @@ const productResponseSchema = z.object({
       fileKey: z.string().nullable(),
       sortOrder: z.number(),
     })),
-    featured: z.boolean().nullable(),
-    comparePrice: z.instanceof(Decimal).nullable(),
+    variants: z.array(z.object({
+      id: z.uuid(),
+      price: z.instanceof(Decimal).nullable(),
+      sku: z.string(),
+      stock: z.number(),
+      comparePrice: z.instanceof(Decimal).nullable(),
+    })),
+    options: z.array(z.object({
+      id: z.uuid(),
+      name: z.string(),
+      values: z.array(z.object({
+        id: z.uuid(),
+        value: z.string(),
+        content: z.string().nullable(),
+      })),
+    })),
+    categories: z.array(z.uuid()),
   }),
 })
 
@@ -79,13 +78,22 @@ export async function getProductById(app: FastifyInstance) {
             comparePrice: true,
             featured: true,
             weight: true,
+            categories: {
+              select: {
+                category: {
+                  select: {
+                    id: true,
+                  },
+                },
+              },
+            },
             variants: {
               select: {
+                id: true,
+                sku: true,
                 stock: true,
                 price: true,
                 comparePrice: true,
-                id: true,
-                sku: true,
               },
             },
             productOptions: {
@@ -95,7 +103,17 @@ export async function getProductById(app: FastifyInstance) {
                     id: true,
                     name: true,
                     values: {
+                      where: {
+                        productOptionValue: {
+                          some: {
+                            productOption: {
+                              productId: id,
+                            },
+                          },
+                        },
+                      },
                       select: {
+                        id: true,
                         content: true,
                         value: true,
                       },
@@ -117,7 +135,30 @@ export async function getProductById(app: FastifyInstance) {
 
         })
 
-        return reply.send({ product })
+        const formattedProduct = {
+          id: product.id,
+          name: product.name,
+          description: product.description,
+          featured: product.featured ?? false,
+          price: product.price,
+          comparePrice: product.comparePrice,
+          weight: product.weight,
+          images: product.images,
+          variants: product.variants,
+          categories: product.categories.map(category =>
+            category.category.id,
+
+          ),
+          options: product.productOptions.map(option => {
+            return {
+              id: option.option.id,
+              name: option.option.name,
+              values: option.option.values,
+            }
+          }),
+        }
+
+        return reply.send({ product: formattedProduct })
       } catch (err) {
         console.log(err)
         throw new BadRequestError('Failed to fetch product.')
