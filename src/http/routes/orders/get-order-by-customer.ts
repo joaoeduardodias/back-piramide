@@ -1,3 +1,4 @@
+/* eslint-disable @stylistic/indent */
 import { prisma } from '@/lib/prisma'
 import { OrderStatus, type Prisma } from '@prisma/client'
 import { Decimal } from '@prisma/client/runtime/library'
