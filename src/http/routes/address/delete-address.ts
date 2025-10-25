@@ -25,7 +25,7 @@ export async function deleteAddress(app: FastifyInstance) {
       const existingAddress = await prisma.address.findFirst({
         where: {
           id,
-          customerId: userId,
+          customerId: userId.sub,
         },
       })
 

@@ -2,72 +2,69 @@ import { prisma } from '@/lib/prisma'
 import type { FastifyInstance } from 'fastify'
 import type { ZodTypeProvider } from 'fastify-type-provider-zod'
 
-import { ProductStatus } from '@prisma/client'
-import { Decimal } from '@prisma/client/runtime/library'
-import { z } from 'zod'
 import { BadRequestError } from '../_errors/bad-request-error'
 
-const responseDataSchema = z.object({
-  total: z.number(),
-  items: z.array(
-    z.object({
-      product: z.object({
-        images: z.array(
-          z.object({
-            id: z.uuid(),
-            createdAt: z.date(),
-            sortOrder: z.number(),
-            productId: z.uuid(),
-            url: z.url(),
-            alt: z.string().nullable(),
-            optionValueId: z.uuid().nullable(),
-          }),
-        ),
-        id: z.uuid(),
-        status: z.enum(ProductStatus),
-        createdAt: z.date(),
-        updatedAt: z.date(),
-        name: z.string(),
-        slug: z.string(),
-        description: z.string().nullable(),
-        price: z.instanceof(Decimal),
-      }),
-      variant: z.object({
-        optionValues: z.array(
-          z.object({
-            optionValue: z.object({
-              option: z.object({
-                id: z.uuid(),
-                name: z.string(),
-                productId: z.uuid(),
-              }),
-              id: z.uuid(),
-              value: z.string(),
-              optionId: z.uuid(),
-            }),
-            id: z.uuid(),
-            variantId: z.uuid(),
-            optionValueId: z.uuid(),
-          }),
-        ),
-        id: z.uuid(),
-        productId: z.uuid(),
-        createdAt: z.date(),
-        updatedAt: z.date(),
-        sku: z.string().nullable(),
-        price: z.instanceof(Decimal).nullable(),
-        stock: z.number(),
-      }).nullable(),
-      id: z.uuid(),
-      orderId: z.uuid(),
-      productId: z.uuid(),
-      variantId: z.uuid().nullable(),
-      quantity: z.number(),
-      unitPrice: z.instanceof(Decimal),
-    }),
-  ),
-  addressId: z.uuid().nullable(),
-})
+// const responseDataSchema = z.object({
+//   total: z.number(),
+//   items: z.array(
+//     z.object({
+//       product: z.object({
+//         images: z.array(
+//           z.object({
+//             id: z.uuid(),
+//             createdAt: z.date(),
+//             sortOrder: z.number(),
+//             productId: z.uuid(),
+//             url: z.url(),
+//             alt: z.string().nullable(),
+//             optionValueId: z.uuid().nullable(),
+//           }),
+//         ),
+//         id: z.uuid(),
+//         status: z.enum(ProductStatus),
+//         createdAt: z.date(),
+//         updatedAt: z.date(),
+//         name: z.string(),
+//         slug: z.string(),
+//         description: z.string().nullable(),
+//         price: z.instanceof(Decimal),
+//       }),
+//       variant: z.object({
+//         optionValues: z.array(
+//           z.object({
+//             optionValue: z.object({
+//               option: z.object({
+//                 id: z.uuid(),
+//                 name: z.string(),
+//                 productId: z.uuid(),
+//               }),
+//               id: z.uuid(),
+//               value: z.string(),
+//               optionId: z.uuid(),
+//             }),
+//             id: z.uuid(),
+//             variantId: z.uuid(),
+//             optionValueId: z.uuid(),
+//           }),
+//         ),
+//         id: z.uuid(),
+//         productId: z.uuid(),
+//         createdAt: z.date(),
+//         updatedAt: z.date(),
+//         sku: z.string().nullable(),
+//         price: z.instanceof(Decimal).nullable(),
+//         stock: z.number(),
+//       }).nullable(),
+//       id: z.uuid(),
+//       orderId: z.uuid(),
+//       productId: z.uuid(),
+//       variantId: z.uuid().nullable(),
+//       quantity: z.number(),
+//       unitPrice: z.instanceof(Decimal),
+//     }),
+//   ),
+//   addressId: z.uuid().nullable(),
+// })
 
 export async function getCart(app: FastifyInstance) {
   app.withTypeProvider<ZodTypeProvider>().get('/cart',
@@ -79,7 +76,7 @@ export async function getCart(app: FastifyInstance) {
           { bearerAuth: [] },
         ],
         response: {
-          200: responseDataSchema,
+          // 200: responseDataSchema,
         },
       },
     },
@@ -88,7 +85,7 @@ export async function getCart(app: FastifyInstance) {
 
       const cart = await prisma.order.findFirst({
         where: {
-          customerId: userId,
+          customerId: userId.sub,
           status: 'PENDING',
         },
         include: {

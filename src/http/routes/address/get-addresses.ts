@@ -35,7 +35,7 @@ export async function getAddresses(app: FastifyInstance) {
       const userId = await request.getCurrentUserId()
 
       const addresses = await prisma.address.findMany({
-        where: { customerId: userId },
+        where: { customerId: userId.sub },
         orderBy: [
           { isDefault: 'desc' },
         ],

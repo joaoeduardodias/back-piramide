@@ -49,14 +49,14 @@ export async function createAddress(app: FastifyInstance) {
       const userId = await request.getCurrentUserId()
       if (isDefault) {
         await prisma.address.updateMany({
-          where: { customerId: userId },
+          where: { customerId: userId.sub },
           data: { isDefault: false },
         })
       }
 
       const address = await prisma.address.create({
         data: {
-          customerId: userId,
+          customerId: userId.sub,
           street,
           complement,
           number,

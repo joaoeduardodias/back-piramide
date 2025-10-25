@@ -22,7 +22,7 @@ export async function clearCart(app: FastifyInstance) {
       const userId = await request.getCurrentUserId()
       const cart = await prisma.order.findFirst({
         where: {
-          customerId: userId,
+          customerId: userId.sub,
           status: 'PENDING',
         },
       })

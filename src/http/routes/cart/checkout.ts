@@ -87,7 +87,7 @@ export async function checkout(app: FastifyInstance) {
       const address = await prisma.address.findFirst({
         where: {
           id: addressId,
-          customerId: userId,
+          customerId: userId.sub,
         },
       })
       if (!address) {
@@ -96,7 +96,7 @@ export async function checkout(app: FastifyInstance) {
 
       const cart = await prisma.order.findFirst({
         where: {
-          customerId: userId,
+          customerId: userId.sub,
           status: 'PENDING',
         },
         include: {

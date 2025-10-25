@@ -65,7 +65,7 @@ export async function updateCartItem(app: FastifyInstance) {
         where: {
           id,
           order: {
-            customerId: userId,
+            customerId: userId.sub,
             status: 'PENDING',
           },
         },

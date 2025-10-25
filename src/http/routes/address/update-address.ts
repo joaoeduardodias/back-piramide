@@ -44,7 +44,7 @@ export async function updateAddress(app: FastifyInstance) {
       const existingAddress = await prisma.address.findFirst({
         where: {
           id,
-          customerId: userId,
+          customerId: userId.sub,
         },
       })
 
@@ -55,7 +55,7 @@ export async function updateAddress(app: FastifyInstance) {
       if (updateData.isDefault) {
         await prisma.address.updateMany({
           where: {
-            customerId: userId,
+            customerId: userId.sub,
             id: { not: id },
           },
           data: { isDefault: false },

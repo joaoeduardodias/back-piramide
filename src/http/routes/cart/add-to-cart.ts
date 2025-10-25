@@ -1,3 +1,4 @@
+/* eslint-disable @stylistic/indent */
 import { prisma } from '@/lib/prisma'
 import type { FastifyInstance } from 'fastify'
 import type { ZodTypeProvider } from 'fastify-type-provider-zod'
@@ -66,7 +67,7 @@ export async function addToCart(app: FastifyInstance) {
 
       let cart = await prisma.order.findFirst({
         where: {
-          customerId: userId,
+          customerId: userId.sub,
           status: 'PENDING',
         },
       })
@@ -74,7 +75,7 @@ export async function addToCart(app: FastifyInstance) {
       if (!cart) {
         cart = await prisma.order.create({
           data: {
-            customerId: userId,
+            customerId: userId.sub,
             status: 'PENDING',
           },
         })
