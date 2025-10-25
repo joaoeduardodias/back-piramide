@@ -1,5 +1,4 @@
 import { prisma } from '@/lib/prisma'
-import { Role } from '@prisma/client'
 import { hash } from 'bcryptjs'
 import type { FastifyInstance } from 'fastify'
 import type { ZodTypeProvider } from 'fastify-type-provider-zod'
@@ -19,18 +18,21 @@ export async function createUser(app: FastifyInstance) {
         }),
         response: {
           201: z.object({
-            success: z.boolean(),
-            message: z.string(),
-            data: z.object({
-              user: z.object({
-                name: z.string().nullable(),
-                email: z.email(),
-                id: z.uuid(),
-                role: z.enum(Role),
-              }),
-              token: z.string(),
-            }),
+            token: z.string(),
           }),
+          // 201: z.object({
+          //   success: z.boolean(),
+          //   message: z.string(),
+          //   data: z.object({
+          //     user: z.object({
+          //       name: z.string().nullable(),
+          //       email: z.email(),
+          //       id: z.uuid(),
+          //       role: z.enum(Role),
+          //     }),
+          //     token: z.string(),
+          //   }),
+          // }),
         },
       },
     },
@@ -71,15 +73,15 @@ export async function createUser(app: FastifyInstance) {
           },
         })
 
-      const responsePayload = {
-        success: true,
-        message: 'User created successfully',
-        data: {
-          user,
-          token,
-        },
-      }
+      // const responsePayload = {
+      //   success: true,
+      //   message: 'User created successfully',
+      //   data: {
+      //     user,
+      //     token,
+      //   },
+      // }
 
-      return reply.status(201).send(responsePayload)
+      return reply.status(201).send({ token })
     })
 }
