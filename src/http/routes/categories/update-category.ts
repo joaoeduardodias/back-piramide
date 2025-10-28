@@ -40,9 +40,6 @@ export async function updateCategory(app: FastifyInstance) {
       if (!existingCategory) {
         throw new BadRequestError('Categoria não encontrada.')
       }
-      if (existingCategory.slug === slug) {
-        throw new BadRequestError('Já existe uma categoria com este slug.')
-      }
 
       try {
         await prisma.category.update({
@@ -52,7 +49,6 @@ export async function updateCategory(app: FastifyInstance) {
           data: {
             name,
             slug,
-
           },
         })
         return reply.status(204).send()
