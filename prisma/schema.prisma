@@ -115,6 +115,8 @@ model Product {
   variants       ProductVariant[]
   productOptions ProductOption[]
   OrderItem      OrderItem[]
+  brand          Brand?            @relation(fields: [brandId], references: [id])
+  brandId        String?           @map("brand_id")
 
   @@map("product")
 }
@@ -143,6 +145,17 @@ model Category {
   products  ProductCategory[]
 
   @@map("category")
+}
+
+model Brand {
+  id        String    @id @default(uuid())
+  name      String
+  slug      String    @unique
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  products  Product[]
+
+  @@map("brand")
 }
 
 model ProductCategory {

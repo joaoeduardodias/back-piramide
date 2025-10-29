@@ -21,6 +21,7 @@ import {
   checkout,
   clearCart,
   createAddress,
+  createBrand,
   createCategory,
   createOption,
   createOrder,
@@ -34,6 +35,8 @@ import {
   getAddresses,
   getAllOptions,
   getAllProducts,
+  getBrandById,
+  getBrands,
   getCart,
   getCategories,
   getCategoryById,
@@ -52,6 +55,7 @@ import {
   resetPassword,
   setDefaultAddress,
   updateAddress,
+  updateBrand,
   updateCartItem,
   updateCategory,
   updateOrder,
@@ -162,6 +166,13 @@ app.register(updateCategory)
 app.register(deleteCategory)
 app.register(getCategories)
 app.register(getCategoryById)
+
+// brand router
+
+app.register(createBrand)
+app.register(getBrandById)
+app.register(getBrands)
+app.register(updateBrand)
 
 app.listen({ port: env.PORT, host: '0.0.0.0' }, () => {
   console.log(`🚀 HTTP server running on http://0.0.0.0:${env.PORT}`)

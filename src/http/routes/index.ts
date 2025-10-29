@@ -52,3 +52,8 @@ export { getCategories } from './categories/get-categories'
 export { getCategoryById } from './categories/get-category-by-id'
 export { updateCategory } from './categories/update-category'
 
+export { createBrand } from './brand/create-brand'
+export { getBrandById } from './brand/get-brand-by-id'
+export { getBrands } from './brand/get-brands'
+export { updateBrand } from './brand/update-brand'
+
