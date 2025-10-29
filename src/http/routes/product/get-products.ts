@@ -29,7 +29,7 @@ const productsResponseSchema = z.object({
     brand: z.object({
       id: z.uuid(),
       name: z.string(),
-    }),
+    }).nullable(),
     categories: z.array(z.object({
       category: z.object({
         id: z.uuid(),
