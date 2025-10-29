@@ -17,7 +17,8 @@ const createProductSchema = z.object({
   comparePrice: z.number().positive().optional(),
   weight: z.number().positive().optional(),
   status: z.enum(ProductStatus).default('DRAFT'),
-  categoryIds: z.array(z.string().uuid()).optional(),
+  brandId: z.uuid(),
+  categoryIds: z.array(z.uuid()).optional(),
   images: z.array(z.object({
     url: z.url(),
     alt: z.string().optional(),
@@ -71,6 +72,7 @@ export async function createProduct(app: FastifyInstance) {
         images,
         variants,
         options,
+        brandId,
       } = request.body
 
       const existingProduct = await prisma.product.findUnique({
@@ -99,6 +101,7 @@ export async function createProduct(app: FastifyInstance) {
               weight,
               status,
               sales: 0,
+              brandId,
               images: images?.length
                 ? {
                   create: images.map((img) => ({

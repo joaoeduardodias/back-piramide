@@ -26,6 +26,10 @@ const productsResponseSchema = z.object({
     price: z.instanceof(Decimal),
     comparePrice: z.instanceof(Decimal).nullable(),
     sales: z.number(),
+    brand: z.object({
+      id: z.uuid(),
+      name: z.string(),
+    }),
     categories: z.array(z.object({
       category: z.object({
         id: z.uuid(),
@@ -107,6 +111,12 @@ export async function getAllProducts(app: FastifyInstance) {
               comparePrice: true,
               slug: true,
               sales: true,
+              brand: {
+                select: {
+                  name: true,
+                  id: true,
+                },
+              },
               images: {
                 orderBy: {
                   sortOrder: 'asc',

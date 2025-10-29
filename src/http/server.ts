@@ -28,6 +28,7 @@ import {
   createProduct,
   createUser,
   deleteAddress,
+  deleteBrand,
   deleteCategory,
   deleteOrder,
   deleteProduct,
@@ -173,6 +174,7 @@ app.register(createBrand)
 app.register(getBrandById)
 app.register(getBrands)
 app.register(updateBrand)
+app.register(deleteBrand)
 
 app.listen({ port: env.PORT, host: '0.0.0.0' }, () => {
   console.log(`🚀 HTTP server running on http://0.0.0.0:${env.PORT}`)

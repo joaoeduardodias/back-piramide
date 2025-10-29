@@ -115,8 +115,8 @@ model Product {
   variants       ProductVariant[]
   productOptions ProductOption[]
   OrderItem      OrderItem[]
-  brand          Brand?            @relation(fields: [brandId], references: [id])
-  brandId        String?           @map("brand_id")
+  brand          Brand             @relation(fields: [brandId], references: [id])
+  brandId        String            @map("brand_id")
 
   @@map("product")
 }
