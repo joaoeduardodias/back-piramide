@@ -45,11 +45,13 @@ import {
   getOrderById,
   getOrders,
   getOrdersByCustomer,
+  getOrdersStats,
   getProductById,
   getProductBySlug,
   getProductStock,
   getProfile,
   getStockReport,
+  getUsers,
   getVariantStock,
   removeFromCart,
   requestPasswordRecover,
@@ -108,6 +110,7 @@ app.register(authenticateWithPassword)
 app.register(authenticateWithGoogle)
 app.register(createUser)
 app.register(getProfile)
+app.register(getUsers)
 app.register(requestPasswordRecover)
 app.register(resetPassword)
 
@@ -128,6 +131,7 @@ app.register(deleteOrder)
 app.register(getOrdersByCustomer)
 app.register(getOrderById)
 app.register(getOrders)
+app.register(getOrdersStats)
 app.register(updateOrder)
 app.register(updateOrderStatus)
 app.register(updateStatusOrderToCancel)

@@ -21,50 +21,27 @@ const responseOrders = z.object({
   orders: z.array(
     z.object({
       id: z.uuid(),
-      createdAt: z.date(),
-      updatedAt: z.date(),
+      status: z.enum(OrderStatus),
       total: z.number(),
       itemsCount: z.number(),
-      addressId: z.uuid().nullable(),
+      createdAt: z.date(),
+      updatedAt: z.date(),
       customer: z.object({
         id: z.uuid(),
         email: z.email(),
         name: z.string().nullable(),
       }).nullable(),
-      items: z.array(
-        z.object({
-          id: z.uuid(),
-          productId: z.uuid(),
-          orderId: z.uuid(),
-          variantId: z.uuid().nullable(),
-          quantity: z.number(),
-          unitPrice: z.instanceof(Decimal),
-          product: z.object({
-            id: z.uuid(),
-            name: z.string(),
-            slug: z.string(),
-            price: z.instanceof(Decimal),
-          }),
-          variant: z.object({
-            id: z.uuid(),
-            price: z.instanceof(Decimal).nullable(),
-            sku: z.string().nullable(),
-          }).nullable(),
-        }),
-      ),
-      address: z.object({
+      items: z.array(z.object({
         id: z.uuid(),
-        customerId: z.uuid(),
-        street: z.string(),
-        number: z.string().nullable(),
-        complement: z.string().nullable(),
-        district: z.string().nullable(),
-        city: z.string(),
-        state: z.string(),
-        postalCode: z.string(),
-        country: z.string(),
-        isDefault: z.boolean(),
-      }).nullable(),
+        quantity: z.number(),
+        unitPrice: z.instanceof(Decimal),
+        product: z.object({
+          id: z.uuid(),
+          name: z.string(),
+          slug: z.string(),
+        }),
+      })),
+
     }),
   ),
   pagination: z.object({
@@ -128,32 +105,30 @@ export async function getOrders(app: FastifyInstance) {
             where,
             skip,
             take: limit,
-            include: {
+            select: {
+              id: true,
+              status: true,
+              createdAt: true,
+              updatedAt: true,
+              items: {
+                select: {
+                  id: true,
+                  quantity: true,
+                  unitPrice: true,
+                  product: {
+                    select: {
+                      name: true,
+                      id: true,
+                      slug: true,
+                    },
+                  },
+                },
+              },
               customer: {
                 select: {
                   id: true,
                   name: true,
                   email: true,
-                },
-              },
-              address: true,
-              items: {
-                include: {
-                  product: {
-                    select: {
-                      id: true,
-                      name: true,
-                      slug: true,
-                      price: true,
-                    },
-                  },
-                  variant: {
-                    select: {
-                      id: true,
-                      sku: true,
-                      price: true,
-                    },
-                  },
                 },
               },
             },
