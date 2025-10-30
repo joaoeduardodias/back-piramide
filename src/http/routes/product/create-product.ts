@@ -14,7 +14,7 @@ const createProductSchema = z.object({
   tags: z.string().optional(),
   featured: z.boolean().default(false),
   price: z.number().positive(),
-  comparePrice: z.number().positive().optional(),
+  comparePrice: z.number().positive().nullable().optional(),
   weight: z.number().positive().optional(),
   status: z.enum(ProductStatus).default('DRAFT'),
   brandId: z.uuid(),

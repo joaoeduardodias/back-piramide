@@ -14,7 +14,7 @@ const updateProductSchema = z.object({
   tags: z.string().optional(),
   featured: z.boolean().optional(),
   price: z.number().positive().optional(),
-  comparePrice: z.number().positive().optional(),
+  comparePrice: z.number().positive().nullable().optional(),
   weight: z.number().positive().optional(),
   status: z.enum(ProductStatus).optional(),
   categoryIds: z.array(z.string().uuid()).optional(),
