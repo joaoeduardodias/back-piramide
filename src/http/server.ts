@@ -24,6 +24,7 @@ import {
   createBrand,
   createCategory,
   createOption,
+  createOptionValue,
   createOrder,
   createProduct,
   createUser,
@@ -123,6 +124,7 @@ app.register(getProductBySlug)
 app.register(getAllProducts)
 app.register(getAllOptions)
 app.register(createOption)
+app.register(createOptionValue)
 
 // orders routes
 

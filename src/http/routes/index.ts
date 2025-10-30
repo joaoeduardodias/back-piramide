@@ -8,6 +8,7 @@ export { requestPasswordRecover } from './auth/request-password-recover'
 export { resetPassword } from './auth/reset-password'
 
 export { createOption } from './product/create-option'
+export { createOptionValue } from './product/create-option-value'
 export { createProduct } from './product/create-product'
 export { deleteProduct } from './product/delete-product'
 export { getAllOptions } from './product/get-options'
