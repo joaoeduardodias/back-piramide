@@ -12,6 +12,7 @@ const getProductsQuerySchema = z.object({
   limit: z.string().transform(val =>
     parseInt(val)).pipe(z.number().int().min(1).max(100)).default(10),
   status: z.enum(ProductStatus).optional(),
+  featured: z.string().optional(),
   categoryId: z.uuid().optional(),
   search: z.string().optional(),
 })
@@ -25,6 +26,7 @@ const productsResponseSchema = z.object({
     description: z.string().nullable(),
     price: z.instanceof(Decimal),
     comparePrice: z.instanceof(Decimal).nullable(),
+    createdAt: z.date(),
     sales: z.number(),
     brand: z.object({
       id: z.uuid(),
@@ -73,12 +75,17 @@ export async function getAllProducts(app: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const { page, limit, status, categoryId, search } = request.query
+      const {
+        page, limit, status, categoryId, search, featured,
+      } = request.query
 
       const skip = (page - 1) * limit
       const where: Prisma.ProductWhereInput = {}
       if (status) {
         where.status = status
+      }
+      if (featured) {
+        where.featured = Boolean(featured)
       }
 
       if (categoryId) {
@@ -108,6 +115,7 @@ export async function getAllProducts(app: FastifyInstance) {
               description: true,
               featured: true,
               price: true,
+              createdAt: true,
               comparePrice: true,
               slug: true,
               sales: true,
