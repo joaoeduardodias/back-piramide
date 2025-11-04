@@ -1,5 +1,5 @@
 /* eslint-disable @stylistic/max-len */
-/* eslint-disable @stylistic/indent */
+
 import { prisma } from '@/lib/prisma'
 import { ProductStatus } from '@prisma/client'
 import type { FastifyInstance } from 'fastify'
@@ -69,7 +69,6 @@ export async function createProduct(app: FastifyInstance) {
         weight,
         status,
         categoryIds,
-        images,
         variants,
         options,
         brandId,
@@ -102,16 +101,7 @@ export async function createProduct(app: FastifyInstance) {
               status,
               sales: 0,
               brandId,
-              images: images?.length
-                ? {
-                  create: images.map((img) => ({
-                    url: img.url,
-                    alt: img.alt,
-                    sortOrder: img.sortOrder,
-                    fileKey: img.fileKey,
-                  })),
-                }
-                : undefined,
+
             },
           })
 

@@ -73,7 +73,6 @@ export async function updateProduct(app: FastifyInstance) {
         weight,
         status,
         categoryIds,
-        images,
         options,
         variants,
       } = request.body
@@ -140,63 +139,6 @@ export async function updateProduct(app: FastifyInstance) {
             }
           }
 
-          if (images) {
-            const existingImages = existingProduct.images
-
-            // Filtra imagens que precisam ser deletadas (não estão no novo array)
-            const toDelete = existingImages.filter(eImg =>
-              !images.some(iImg =>
-                iImg.id === eImg.id ||
-                (iImg.url === eImg.url &&
-                  iImg.alt === eImg.alt &&
-                  iImg.sortOrder === eImg.sortOrder &&
-                  iImg.fileKey === eImg.fileKey),
-              ),
-            )
-
-            if (toDelete.length) {
-              await tx.productImage.deleteMany({
-                where: { id: { in: toDelete.map(img => img.id) } },
-              })
-            }
-
-            for (const img of images) {
-              if (img.id) {
-                // Atualiza apenas se os campos mudaram
-                const existing = existingImages.find(e => e.id === img.id)
-                if (
-                  existing &&
-                  (existing.url !== img.url ||
-                    existing.alt !== img.alt ||
-                    existing.sortOrder !== img.sortOrder ||
-                    existing.fileKey !== img.fileKey)
-                ) {
-                  await tx.productImage.update({
-                    where: { id: img.id },
-                    data: {
-                      url: img.url,
-                      alt: img.alt,
-                      sortOrder: img.sortOrder,
-                      fileKey: img.fileKey,
-                    },
-                  })
-                }
-              } else {
-                // Cria nova imagem
-                await tx.productImage.create({
-                  data: {
-                    productId: id,
-                    url: img.url,
-                    alt: img.alt,
-                    sortOrder: img.sortOrder,
-                    fileKey: img.fileKey,
-                  },
-                })
-              }
-            }
-          }
-
-          // Atualizar variants
           if (variants) {
             const existingVariants = existingProduct.variants
             const incomingVariantIds = variants.filter(v => v.id).map(v => v.id!)
@@ -233,7 +175,6 @@ export async function updateProduct(app: FastifyInstance) {
             }
           }
 
-          // Atualizar opções e valores
           if (options && options.length > 0) {
             for (const opt of options) {
               const option = await tx.option.findUnique({
