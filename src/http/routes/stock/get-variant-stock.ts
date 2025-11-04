@@ -1,6 +1,5 @@
 import { prisma } from '@/lib/prisma'
 import { getUserPermissions } from '@/utils/get-user-permissions'
-import type { Decimal } from '@prisma/client/runtime/library'
 import type { FastifyInstance } from 'fastify'
 import type { ZodTypeProvider } from 'fastify-type-provider-zod'
 import { z } from 'zod/v4'
@@ -11,7 +10,7 @@ const variantSchema = z.object({
   id: z.uuid(),
   sku: z.string().nullable(),
   stock: z.number(),
-  price: z.custom<Decimal>().nullable(),
+  price: z.number().nullable(),
   product: z.object({
     id: z.uuid(),
     name: z.string(),
