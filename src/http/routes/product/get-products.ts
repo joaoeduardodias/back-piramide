@@ -1,7 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import type { Prisma } from '@prisma/client'
 import { ProductStatus } from '@prisma/client'
-import { Decimal } from '@prisma/client/runtime/library'
 import type { FastifyInstance } from 'fastify'
 import type { ZodTypeProvider } from 'fastify-type-provider-zod'
 import z from 'zod/v4'
@@ -24,8 +23,8 @@ const productsResponseSchema = z.object({
     slug: z.string(),
     featured: z.boolean().nullable(),
     description: z.string().nullable(),
-    price: z.instanceof(Decimal),
-    comparePrice: z.instanceof(Decimal).nullable(),
+    price: z.number(),
+    comparePrice: z.number().nullable(),
     createdAt: z.date(),
     sales: z.number(),
     brand: z.object({
@@ -46,7 +45,7 @@ const productsResponseSchema = z.object({
     })),
     variants: z.array(z.object({
       id: z.string(),
-      price: z.instanceof(Decimal).nullable(),
+      price: z.number().nullable(),
       sku: z.string(),
       stock: z.number(),
     }),
