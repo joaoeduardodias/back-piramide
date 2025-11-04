@@ -1,6 +1,5 @@
 import { prisma } from '@/lib/prisma'
 import { OrderStatus, type Prisma } from '@prisma/client'
-import { Decimal } from '@prisma/client/runtime/library'
 import type { FastifyInstance } from 'fastify'
 import type { ZodTypeProvider } from 'fastify-type-provider-zod'
 import { z } from 'zod/v4'
@@ -34,7 +33,7 @@ const responseOrders = z.object({
       items: z.array(z.object({
         id: z.uuid(),
         quantity: z.number(),
-        unitPrice: z.instanceof(Decimal),
+        unitPrice: z.number(),
         product: z.object({
           id: z.uuid(),
           name: z.string(),

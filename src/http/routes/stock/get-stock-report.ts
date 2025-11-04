@@ -24,7 +24,7 @@ const ReportSchema = z.object({
       id: z.string(),
       sku: z.string().nullable(),
       stock: z.number(),
-      price: z.custom<Prisma.Decimal>().nullable(),
+      price: z.number().nullable(),
       product: z.object({
         id: z.string(),
         name: z.string(),

@@ -1,68 +1,18 @@
 import { prisma } from '@/lib/prisma'
-import { ProductStatus } from '@prisma/client'
-import { Decimal } from '@prisma/client/runtime/library'
 import type { FastifyInstance } from 'fastify'
 import type { ZodTypeProvider } from 'fastify-type-provider-zod'
 import { z } from 'zod/v4'
 import { BadRequestError } from '../_errors/bad-request-error'
 
-const orderSchema = z
-  .object({
-    id: z.uuid(),
-    customerId: z.uuid().nullable(),
-    createdAt: z.date(),
-    updatedAt: z.date(),
-
-    items: z.array(
-      z.object({
-        id: z.uuid(),
-        orderId: z.uuid(),
-        productId: z.uuid(),
-        variantId: z.uuid().nullable(),
-        quantity: z.number(),
-        unitPrice: z.instanceof(Decimal),
-
-        variant: z
-          .object({
-            id: z.uuid(),
-            createdAt: z.date(),
-            updatedAt: z.date(),
-            productId: z.uuid(),
-            sku: z.string().nullable(),
-            price: z.instanceof(Decimal).nullable(),
-            stock: z.number(),
-          })
-          .nullable(),
-
-        product: z.object({
-          id: z.uuid(),
-          createdAt: z.date(),
-          updatedAt: z.date(),
-          price: z.instanceof(Decimal),
-          status: z.enum(ProductStatus),
-          name: z.string(),
-          description: z.string().nullable(),
-          slug: z.string(),
-        }),
-      }),
-    ),
-
-    address: z
-      .object({
-        id: z.uuid(),
-        customerId: z.uuid(),
-        number: z.string().nullable(),
-        street: z.string(),
-        complement: z.string().nullable(),
-        district: z.string().nullable(),
-        city: z.string(),
-        state: z.string(),
-        postalCode: z.string(),
-        country: z.string(),
-        isDefault: z.boolean(),
-      })
-      .nullable(),
-  }).nullable()
+const orderSchema = z.object({
+  id: z.string(),
+  items: z.array(z.object({
+    product: z.object({
+      id: z.string(),
+      name: z.string(),
+    }),
+  })),
+}).nullable()
 
 export async function checkout(app: FastifyInstance) {
   app.withTypeProvider<ZodTypeProvider>().post('/cart/checkout',
@@ -144,15 +94,28 @@ export async function checkout(app: FastifyInstance) {
 
       const order = await prisma.order.findUnique({
         where: { id: cart.id },
-        include: {
+        select: {
+          id: true,
           items: {
-            include: {
-              product: true,
-              variant: true,
+            select: {
+              product: {
+                select: {
+                  id: true,
+                  name: true,
+                },
+              },
             },
           },
-          address: true,
         },
+        // include: {
+        //   items: {
+        //     include: {
+        //       product: true,
+        //       variant: true,
+        //     },
+        //   },
+        //   address: true,
+        // },
       })
 
       return reply.send(order)

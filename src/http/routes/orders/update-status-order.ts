@@ -1,6 +1,5 @@
 import { prisma } from '@/lib/prisma'
 import type { OrderStatus } from '@prisma/client'
-import { Decimal } from '@prisma/client/runtime/library'
 import type { FastifyInstance } from 'fastify'
 import type { ZodTypeProvider } from 'fastify-type-provider-zod'
 import z from 'zod/v4'
@@ -17,33 +16,31 @@ const responseOrderSchema = z.object({
   total: z.number(),
   itemsCount: z.number(),
   addressId: z.uuid().nullable(),
-  customer: z
-    .object({
+  customer: z.object({
+    id: z.uuid(),
+    email: z.email(),
+    name: z.string().nullable(),
+  }).nullable(),
+  items: z.array(z.object({
+    id: z.uuid(),
+    productId: z.uuid(),
+    orderId: z.uuid(),
+    variantId: z.uuid().nullable(),
+    quantity: z.number(),
+    unitPrice: z.number(),
+    product: z.object({
       id: z.uuid(),
-      email: z.email(),
-      name: z.string().nullable(),
-    }).nullable(),
-  items: z.array(
-    z.object({
-      id: z.uuid(),
-      productId: z.uuid(),
-      orderId: z.uuid(),
-      variantId: z.uuid().nullable(),
-      quantity: z.number(),
-      unitPrice: z.instanceof(Decimal),
-      product: z.object({
-        id: z.uuid(),
-        name: z.string(),
-        slug: z.string(),
-        price: z.instanceof(Decimal),
-      }),
-      variant: z
-        .object({
-          id: z.uuid(),
-          price: z.instanceof(Decimal).nullable(),
-          sku: z.string().nullable(),
-        }).nullable(),
+      name: z.string(),
+      slug: z.string(),
+      price: z.number(),
     }),
+    variant: z
+      .object({
+        id: z.uuid(),
+        price: z.number().nullable(),
+        sku: z.string().nullable(),
+      }).nullable(),
+  }),
   ),
   address: z.object({
     id: z.uuid(),

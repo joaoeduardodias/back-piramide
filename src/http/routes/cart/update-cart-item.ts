@@ -1,6 +1,5 @@
 import { prisma } from '@/lib/prisma'
 import { ProductStatus } from '@prisma/client'
-import { Decimal } from '@prisma/client/runtime/library'
 import type { FastifyInstance } from 'fastify'
 import type { ZodTypeProvider } from 'fastify-type-provider-zod'
 import { z } from 'zod/v4'
@@ -17,7 +16,7 @@ const updatedItemSchema = z.object({
     status: z.enum(ProductStatus),
     createdAt: z.date(),
     updatedAt: z.date(),
-    price: z.instanceof(Decimal),
+    price: z.number(),
     slug: z.string(),
   }),
   variant: z
@@ -27,7 +26,7 @@ const updatedItemSchema = z.object({
       createdAt: z.date(),
       updatedAt: z.date(),
       sku: z.string().nullable(),
-      price: z.instanceof(Decimal).nullable(),
+      price: z.number().nullable(),
       stock: z.number(),
     })
     .nullable(),
@@ -36,7 +35,7 @@ const updatedItemSchema = z.object({
   orderId: z.string(),
   productId: z.string(),
   variantId: z.string().nullable(),
-  unitPrice: z.instanceof(Decimal),
+  unitPrice: z.number(),
 })
 export async function updateCartItem(app: FastifyInstance) {
   app.withTypeProvider<ZodTypeProvider>().put('/cart/items/:id',
