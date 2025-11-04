@@ -32,6 +32,10 @@ const productResponseSchema = z.object({
       stock: z.number(),
       comparePrice: z.instanceof(Decimal).nullable(),
     })),
+    brand: z.object({
+      id: z.string(),
+      name: z.string(),
+    }),
     options: z.array(z.object({
       id: z.uuid(),
       name: z.string(),
@@ -78,6 +82,12 @@ export async function getProductById(app: FastifyInstance) {
             comparePrice: true,
             featured: true,
             weight: true,
+            brand: {
+              select: {
+                name: true,
+                id: true,
+              },
+            },
             categories: {
               select: {
                 category: {
@@ -141,6 +151,7 @@ export async function getProductById(app: FastifyInstance) {
           description: product.description,
           featured: product.featured ?? false,
           price: product.price,
+          brand: product.brand!,
           comparePrice: product.comparePrice,
           weight: product.weight,
           images: product.images,

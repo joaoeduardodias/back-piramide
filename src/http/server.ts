@@ -58,15 +58,18 @@ import {
   requestPasswordRecover,
   resetPassword,
   setDefaultAddress,
+  signedUrl,
   updateAddress,
   updateBrand,
   updateCartItem,
   updateCategory,
+  updateImages,
   updateOrder,
   updateOrderStatus,
   updateProduct,
   updateStatusOrderToCancel,
   updateVariantStock,
+  uploadImages,
 } from './routes'
 
 const app = fastify().withTypeProvider<ZodTypeProvider>()
@@ -125,6 +128,9 @@ app.register(getAllProducts)
 app.register(getAllOptions)
 app.register(createOption)
 app.register(createOptionValue)
+app.register(signedUrl)
+app.register(uploadImages)
+app.register(updateImages)
 
 // orders routes
 

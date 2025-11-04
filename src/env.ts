@@ -11,6 +11,13 @@ const envSchema = z.object({
   GOOGLE_OAUTH_CLIENT_SECRET: z.string(),
   GOOGLE_OAUTH_CLIENT_REDIRECT_URI: z.url(),
 
+  CLOUDFARE_ENDPOINT: z.url(),
+  CLOUDFARE_PUBLIC_URL: z.url(),
+  CLOUDFARE_SECRET_ACCESS_KEY: z.string(),
+  CLOUDFARE_ACCESS_KEY_ID: z.string(),
+  CLOUDFARE_BUCKET_NAME: z.string(),
+  CLOUDFARE_R2_TOKEN: z.string(),
+
 })
 
 export const env = envSchema.parse(process.env)
