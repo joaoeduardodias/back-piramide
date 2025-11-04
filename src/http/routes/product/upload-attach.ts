@@ -30,7 +30,7 @@ export async function uploadImages(app: FastifyInstance) {
     },
     async (request, reply) => {
       const { productId, files } = request.body
-
+      console.log(files)
       try {
         await prisma.productImage.createMany({
           data: files.map((f) => ({

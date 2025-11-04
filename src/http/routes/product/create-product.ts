@@ -23,8 +23,8 @@ const createProductSchema = z.object({
     url: z.url(),
     alt: z.string().optional(),
     sortOrder: z.number().int().min(0).default(0),
-    fileKey: z.string().nullable(),
-  })).optional(),
+    fileKey: z.string(),
+  })),
   options: z.array(z.object({
     name: z.string(),
     values: z.array(z.object({
@@ -65,6 +65,7 @@ export async function createProduct(app: FastifyInstance) {
         tags,
         featured,
         price,
+        images,
         comparePrice,
         weight,
         status,
@@ -196,7 +197,16 @@ export async function createProduct(app: FastifyInstance) {
               )
             }
           }
-
+          if (images && images.length > 0) {
+            await tx.productImage.createMany({
+              data: images.map((f, i) => ({
+                productId: createdProduct.id,
+                fileKey: f.fileKey,
+                url: f.url,
+                sortOrder: i + 1,
+              })),
+            })
+          }
           return createdProduct
         })
 
