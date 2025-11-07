@@ -119,6 +119,14 @@ export async function createProduct(app: FastifyInstance) {
           if (variants?.length) {
             const createdVariants = await Promise.all(
               variants.map(async (variant) => {
+                const existingVariant = await tx.productVariant.findUnique({
+                  where: { sku: variant.sku },
+                })
+
+                if (existingVariant) {
+                  throw new BadRequestError(`Já existe um produto com este SKU - ${existingVariant.sku}`)
+                }
+
                 return tx.productVariant.create({
                   data: {
                     productId: createdProduct.id,
