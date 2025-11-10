@@ -15,6 +15,7 @@ const productResponseSchema = z.object({
     description: z.string().nullable(),
     featured: z.boolean(),
     price: z.number(),
+    brand: z.string(),
     comparePrice: z.number().nullable(),
     weight: z.number().nullable(),
     images: z.array(z.object({
@@ -40,7 +41,13 @@ const productResponseSchema = z.object({
         content: z.string().nullable(),
       })),
     })),
-    categories: z.array(z.uuid()),
+    categories: z.array(z.object({
+      category: z.object({
+        id: z.uuid(),
+        slug: z.string(),
+        name: z.string(),
+      }),
+    })),
   }),
 })
 
@@ -74,6 +81,7 @@ export async function getProductBySlug(app: FastifyInstance) {
             name: true,
             description: true,
             price: true,
+            brand: true,
             comparePrice: true,
             featured: true,
             weight: true,
@@ -82,6 +90,8 @@ export async function getProductBySlug(app: FastifyInstance) {
                 category: {
                   select: {
                     id: true,
+                    name: true,
+                    slug: true,
                   },
                 },
               },
@@ -138,16 +148,14 @@ export async function getProductBySlug(app: FastifyInstance) {
           id: product.id,
           name: product.name,
           description: product.description,
+          brand: product.brand?.name ?? '',
           featured: product.featured ?? false,
           price: product.price,
           comparePrice: product.comparePrice,
           weight: product.weight,
           images: product.images,
           variants: product.variants,
-          categories: product.categories.map(category =>
-            category.category.id,
-
-          ),
+          categories: product.categories,
           options: product.productOptions.map(option => {
             return {
               id: option.option.id,
