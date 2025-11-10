@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { prisma } from '@/lib/prisma'
 import type { Prisma } from '@prisma/client'
 import { ProductStatus } from '@prisma/client'
@@ -12,6 +13,12 @@ const getProductsQuerySchema = z.object({
     parseInt(val)).pipe(z.number().int().min(1).max(100)).default(10),
   status: z.enum(ProductStatus).optional(),
   featured: z.string().optional(),
+  sortBy: z.enum([
+    'price-asc',
+    'price-desc',
+    'relevance',
+    'created-desc',
+  ]).optional(),
   categoryId: z.uuid().optional(),
   search: z.string().optional(),
 })
@@ -75,7 +82,7 @@ export async function getAllProducts(app: FastifyInstance) {
     },
     async (request, reply) => {
       const {
-        page, limit, status, categoryId, search, featured,
+        page, limit, status, categoryId, search, featured, sortBy,
       } = request.query
 
       const skip = (page - 1) * limit
@@ -85,6 +92,26 @@ export async function getAllProducts(app: FastifyInstance) {
       }
       if (featured) {
         where.featured = Boolean(featured)
+      }
+      let sortBySearch: any = {}
+      if (sortBy) {
+        switch (sortBy) {
+          case 'price-asc':
+            sortBySearch = { price: 'asc' }
+            break
+          case 'price-desc':
+            sortBySearch = { price: 'desc' }
+            break
+          case 'created-desc':
+            sortBySearch = { createdAt: 'desc' }
+            break
+          case 'relevance':
+            sortBySearch = { sales: 'desc' }
+            break
+          default:
+            sortBySearch = { name: 'asc' }
+            break
+        }
       }
 
       if (categoryId) {
@@ -155,13 +182,12 @@ export async function getAllProducts(app: FastifyInstance) {
               },
             },
 
-            orderBy: { createdAt: 'desc' },
+            orderBy: sortBySearch,
           }),
           prisma.product.count({ where }),
         ])
 
         const totalPages = Math.ceil(total / limit)
-
         return reply.send({
           products,
           pagination: {

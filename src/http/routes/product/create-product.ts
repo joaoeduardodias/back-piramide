@@ -16,7 +16,7 @@ const createProductSchema = z.object({
   price: z.number().positive(),
   comparePrice: z.number().positive().nullable().optional(),
   weight: z.number().positive().optional(),
-  status: z.enum(ProductStatus).default('DRAFT'),
+  status: z.enum(ProductStatus).default('PUBLISHED'),
   brandId: z.uuid(),
   categoryIds: z.array(z.uuid()).optional(),
   images: z.array(z.object({
