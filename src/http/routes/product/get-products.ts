@@ -19,7 +19,7 @@ const getProductsQuerySchema = z.object({
     'relevance',
     'created-desc',
   ]).optional(),
-  categoryId: z.uuid().optional(),
+  category: z.string().optional(),
   search: z.string().optional(),
 })
 
@@ -82,7 +82,7 @@ export async function getAllProducts(app: FastifyInstance) {
     },
     async (request, reply) => {
       const {
-        page, limit, status, categoryId, search, featured, sortBy,
+        page, limit, status, category, search, featured, sortBy,
       } = request.query
 
       const skip = (page - 1) * limit
@@ -114,10 +114,12 @@ export async function getAllProducts(app: FastifyInstance) {
         }
       }
 
-      if (categoryId) {
+      if (category) {
         where.categories = {
           some: {
-            categoryId,
+            category: {
+              name: category,
+            },
           },
         }
       }

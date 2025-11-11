@@ -10,10 +10,9 @@ const getCategoriesSchema = z.object({
     name: z.string(),
     slug: z.string(),
     products: z.array(z.object({
-      product: z.object({
-        id: z.uuid(),
-        name: z.string(),
-      }),
+      id: z.uuid(),
+      name: z.string(),
+      image: z.url(),
     }),
     ),
   })),
@@ -46,14 +45,35 @@ export async function getCategories(app: FastifyInstance) {
                   select: {
                     id: true,
                     name: true,
-
+                    images: {
+                      select: {
+                        url: true,
+                      },
+                      take: 1,
+                    },
                   },
                 },
               },
             },
           },
         })
-        return reply.send({ categories })
+
+        const formattedCategories = categories.map(category => {
+          return {
+            id: category.id,
+            name: category.name,
+            slug: category.slug,
+            products: category.products.map(p => {
+              return {
+                id: p.product.id,
+                name: p.product.name,
+                image: p.product.images[0].url,
+              }
+            }),
+          }
+        })
+
+        return reply.send({ categories: formattedCategories })
       } catch {
         throw new BadRequestError('Falha ao Listar categorias.')
       }
