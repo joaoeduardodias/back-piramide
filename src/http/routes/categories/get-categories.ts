@@ -24,9 +24,6 @@ export async function getCategories(app: FastifyInstance) {
       schema: {
         tags: ['Category'],
         summary: 'Get all categories',
-        security: [
-          { bearerAuth: [] },
-        ],
         response: {
           200: getCategoriesSchema,
         },

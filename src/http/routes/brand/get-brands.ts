@@ -23,9 +23,6 @@ export async function getBrands(app: FastifyInstance) {
       schema: {
         tags: ['Brand'],
         summary: 'Get all brands',
-        security: [
-          { bearerAuth: [] },
-        ],
         response: {
           200: getBrandsSchema,
         },

@@ -21,6 +21,7 @@ const getProductsQuerySchema = z.object({
   ]).optional(),
   category: z.string().optional(),
   search: z.string().optional(),
+  brand: z.string().optional(),
 })
 
 const productsResponseSchema = z.object({
@@ -82,13 +83,17 @@ export async function getAllProducts(app: FastifyInstance) {
     },
     async (request, reply) => {
       const {
-        page, limit, status, category, search, featured, sortBy,
+        page, limit, status, category, search, featured, sortBy, brand,
       } = request.query
 
       const skip = (page - 1) * limit
       const where: Prisma.ProductWhereInput = {}
       if (status) {
         where.status = status
+      }
+      console.log(brand)
+      if (brand) {
+        where.brand = { name: brand }
       }
       if (featured) {
         where.featured = Boolean(featured)

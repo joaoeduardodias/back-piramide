@@ -28,9 +28,6 @@ export async function getBrandById(app: FastifyInstance) {
         tags: ['brand'],
         summary: 'Get brand by id',
         params: getBrandByIdParamsSchema,
-        security: [
-          { bearerAuth: [] },
-        ],
         response: {
           200: getBrandByIdSchema,
         },

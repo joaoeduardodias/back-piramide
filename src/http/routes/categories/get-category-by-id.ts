@@ -30,9 +30,6 @@ export async function getCategoryById(app: FastifyInstance) {
         tags: ['Category'],
         summary: 'Get category by id',
         params: getCategoryByIdParamsSchema,
-        security: [
-          { bearerAuth: [] },
-        ],
         response: {
           200: getCategoryByIdSchema,
         },
