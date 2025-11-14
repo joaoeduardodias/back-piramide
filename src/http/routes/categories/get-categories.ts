@@ -12,7 +12,7 @@ const getCategoriesSchema = z.object({
     products: z.array(z.object({
       id: z.uuid(),
       name: z.string(),
-      image: z.url(),
+      image: z.url().optional(),
     }),
     ),
   })),
@@ -64,14 +64,15 @@ export async function getCategories(app: FastifyInstance) {
               return {
                 id: p.product.id,
                 name: p.product.name,
-                image: p.product.images[0].url,
+                image: p.product.images[0]?.url,
               }
             }),
           }
         })
 
         return reply.send({ categories: formattedCategories })
-      } catch {
+      } catch (err) {
+        console.log(err)
         throw new BadRequestError('Falha ao Listar categorias.')
       }
     },
