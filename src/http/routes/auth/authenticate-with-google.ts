@@ -23,6 +23,7 @@ export async function authenticateWithGoogle(app: FastifyInstance) {
     // https://accounts.google.com/o/oauth2/v2/auth?client_id=1041206287799-u65ib35rlr5kkgi60ds2bdvik835mssl.apps.googleusercontent.com&redirect_uri=http://localhost:3000/api/auth/callback&response_type=code&scope=https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile&access_type=offline&prompt=consent
 
     const { code } = request.body
+    console.log('AQUIIII')
     const formattedCode = decodeURIComponent(code)
 
     const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
