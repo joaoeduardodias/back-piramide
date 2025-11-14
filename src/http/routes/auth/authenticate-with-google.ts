@@ -24,7 +24,6 @@ export async function authenticateWithGoogle(app: FastifyInstance) {
 
     const { code } = request.body
     const formattedCode = decodeURIComponent(code)
-    console.log(formattedCode)
 
     const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
@@ -38,7 +37,6 @@ export async function authenticateWithGoogle(app: FastifyInstance) {
       }),
     })
     const tokenGoogle = await tokenResponse.json()
-    console.log(tokenGoogle)
 
     const { access_token: AccessTokenGoogle } = z.object({
       access_token: z.string(),
