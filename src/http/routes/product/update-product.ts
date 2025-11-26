@@ -1,5 +1,4 @@
 /* eslint-disable @stylistic/max-len */
-
 import { prisma } from '@/lib/prisma'
 import { ProductStatus } from '@prisma/client'
 import type { FastifyInstance } from 'fastify'
@@ -8,39 +7,40 @@ import z from 'zod/v4'
 import { BadRequestError } from '../_errors/bad-request-error'
 
 const updateProductSchema = z.object({
-  name: z.string().min(1).optional(),
-  slug: z.string().min(1).optional(),
-  description: z.string().optional(),
-  tags: z.string().optional(),
-  featured: z.boolean().optional(),
-  price: z.number().positive().optional(),
-  comparePrice: z.number().positive().nullable().optional(),
-  weight: z.number().positive().optional(),
-  status: z.enum(ProductStatus).optional(),
-  categoryIds: z.array(z.string().uuid()).optional(),
+  name: z.string().min(1).nullish(),
+  slug: z.string().min(1).nullish(),
+  description: z.string().nullish(),
+  tags: z.string().nullish(),
+  featured: z.boolean().nullish(),
+  price: z.number().positive().nullish(),
+  comparePrice: z.number().nullish(),
+  weight: z.number().positive().nullish(),
+  status: z.enum(ProductStatus).nullish(),
+  brandId: z.uuid().nullish(),
+  categoryIds: z.array(z.uuid()).nullish(),
   images: z.array(z.object({
-    id: z.string().uuid().optional(),
-    url: z.string().url(),
-    alt: z.string().optional(),
+    id: z.uuid().nullish(),
+    url: z.url(),
+    alt: z.string().nullish(),
     sortOrder: z.number().int().min(0).default(0),
-    fileKey: z.string().nullable().optional(),
-  })).optional(),
+    fileKey: z.string().nullish(),
+  })).nullish(),
   options: z.array(z.object({
     name: z.string(),
     values: z.array(z.object({
-      id: z.string().uuid(),
+      id: z.uuid(),
       value: z.string(),
-      content: z.string().optional().nullable(),
+      content: z.string().nullish().nullable(),
     })),
-  })).optional(),
+  })).nullish(),
   variants: z.array(z.object({
-    id: z.string().uuid().optional(),
+    id: z.uuid().nullish(),
     sku: z.string(),
-    price: z.number().optional(),
-    comparePrice: z.number().optional(),
+    price: z.number().nullish(),
+    comparePrice: z.number().nullish(),
     stock: z.number().int().default(0),
-    optionValueIds: z.array(z.string().uuid()).optional(),
-  })).optional(),
+    optionValueIds: z.array(z.uuid()).nullish(),
+  })).nullish(),
 })
 
 export async function updateProduct(app: FastifyInstance) {
@@ -48,14 +48,14 @@ export async function updateProduct(app: FastifyInstance) {
     {
       schema: {
         tags: ['Products'],
-        summary: 'Update product',
+        summary: 'Update a product',
         body: updateProductSchema,
         params: z.object({
-          id: z.string().uuid(),
+          id: z.uuid(),
         }),
         response: {
           200: z.object({
-            productId: z.string().uuid(),
+            productId: z.uuid(),
           }),
         },
       },
@@ -71,7 +71,7 @@ export async function updateProduct(app: FastifyInstance) {
         price,
         comparePrice,
         weight,
-        status,
+        brandId,
         categoryIds,
         options,
         variants,
@@ -111,20 +111,26 @@ export async function updateProduct(app: FastifyInstance) {
             data: {
               ...(name && { name }),
               ...(slug && { slug }),
-              ...(description !== undefined && { description }),
-              ...(tags !== undefined && { tags }),
-              ...(featured !== undefined && { featured }),
-              ...(price !== undefined && { price }),
-              ...(comparePrice !== undefined && { comparePrice }),
-              ...(weight !== undefined && { weight }),
-              ...(status && { status }),
+              ...(brandId && { brandId }),
+              ...(description && { description }),
+              ...(tags && { tags }),
+              ...(featured && { featured }),
+              ...(price && { price }),
+              ...(comparePrice === 0 || comparePrice === null || comparePrice === undefined
+                ? { comparePrice: null }
+                : { comparePrice }),
+              ...(weight && { weight }),
+              // ...(status && { status }),
             },
           })
 
           if (categoryIds) {
-            const existingCategoryIds = existingProduct.categories.map(c => c.categoryId)
-            const toAdd = categoryIds.filter(id => !existingCategoryIds.includes(id))
-            const toRemove = existingCategoryIds.filter(id => !categoryIds.includes(id))
+            const existingCategoryIds = existingProduct.categories
+              .map(c => c.categoryId)
+            const toAdd = categoryIds.filter(id => !existingCategoryIds
+              .includes(id))
+            const toRemove = existingCategoryIds
+              .filter(id => !categoryIds.includes(id))
 
             if (toAdd.length) {
               await tx.productCategory.createMany({
@@ -141,8 +147,10 @@ export async function updateProduct(app: FastifyInstance) {
 
           if (variants) {
             const existingVariants = existingProduct.variants
-            const incomingVariantIds = variants.filter(v => v.id).map(v => v.id!)
-            const toDelete = existingVariants.filter(v => !incomingVariantIds.includes(v.id))
+            const incomingVariantIds = variants.filter(v => v.id)
+              .map(v => v.id!)
+            const toDelete = existingVariants.filter(v => !incomingVariantIds
+              .includes(v.id))
 
             if (toDelete.length) {
               await tx.productVariant.deleteMany({
@@ -175,43 +183,98 @@ export async function updateProduct(app: FastifyInstance) {
             }
           }
 
+          const chunk = <T>(arr: T[], size = 500): T[][] =>
+            Array.from({ length: Math.ceil(arr.length / size) }, (_, i) =>
+              arr.slice(i * size, i * size + size),
+            )
+
           if (options && options.length > 0) {
-            for (const opt of options) {
-              const option = await tx.option.findUnique({
-                where: { name: opt.name },
-                select: { id: true },
+            // 1) nomes únicos e válidos
+            const incomingNames = Array.from(
+              new Set(options.map((o) => o?.name).filter(Boolean)),
+            )
+
+            if (incomingNames.length > 0) {
+              // 2) buscar todas as options de uma vez
+              const existingOptions = await tx.option.findMany({
+                where: { name: { in: incomingNames } },
+                select: { id: true, name: true },
               })
 
-              if (!option) continue
+              if (existingOptions.length > 0) {
+                // maps para lookup
+                const optionNameToId = new Map(existingOptions.map((o) => [o.name, o.id]))
+                const existingOptionIds = existingOptions.map((o) => o.id)
 
-              const productOption = await tx.productOption.upsert({
-                where: {
-                  productId_optionId: {
-                    productId: id,
-                    optionId: option.id,
-                  },
-                },
-                update: {},
-                create: {
+                // 3) preparar productOption creates (data para createMany)
+                const productOptionCreates = existingOptionIds.map((optionId) => ({
                   productId: id,
-                  optionId: option.id,
-                },
-              })
+                  optionId,
+                }))
 
-              for (const v of opt.values) {
-                await tx.productOptionValue.upsert({
+                // 4) criar productOption em batches sequenciais (sem for) usando reduce -> encadeia promises
+                const poBatches = chunk(productOptionCreates, 500)
+                await poBatches.reduce<Promise<void>>((prev, batch) => {
+                  return prev.then(() =>
+                    tx.productOption.createMany({ data: batch, skipDuplicates: true }).then(() => { }),
+                  )
+                }, Promise.resolve())
+
+                // 5) buscar productOptions para obter ids
+                const productOptions = await tx.productOption.findMany({
                   where: {
-                    productOptionId_optionValueId: {
-                      productOptionId: productOption.id,
-                      optionValueId: v.id,
-                    },
+                    productId: id,
+                    optionId: { in: existingOptionIds },
                   },
-                  create: {
-                    productOptionId: productOption.id,
-                    optionValueId: v.id,
-                  },
-                  update: {},
+                  select: { id: true, optionId: true },
                 })
+
+                const optionIdToProductOptionId = new Map(
+                  productOptions.map((po) => [po.optionId, po.id]),
+                )
+
+                // 6) construir lista de pares (productOptionId, optionValueId) usando flatMap / map (sem for)
+                const povCreatesAll = options
+                  .map((opt) => {
+                    const optionId = optionNameToId.get(opt.name)
+                    if (!optionId) return [] // option inexistente
+                    const productOptionId = optionIdToProductOptionId.get(optionId)
+                    if (!productOptionId) return [] // sem productOptionId encontrado
+                    return (Array.isArray(opt.values)
+                      ? opt.values
+                      : [])
+                      .filter(Boolean)
+                      .map((v) => (v && v.id
+                        ? { productOptionId, optionValueId: v.id }
+                        : null))
+                      .filter(Boolean) as { productOptionId: string; optionValueId: string }[]
+                  })
+                  .flat()
+
+                if (povCreatesAll.length > 0) {
+                  const uniqueMap = new Map<string, { productOptionId: string; optionValueId: string }>()
+                  povCreatesAll.forEach((p) => {
+                    const key = `${p.productOptionId}__${p.optionValueId}`
+                    if (!uniqueMap.has(key)) uniqueMap.set(key, p)
+                  })
+                  const uniqueCreates = Array.from(uniqueMap.values())
+
+                  // 8) criar productOptionValue em batches sequenciais (sem for)
+                  const povBatches = chunk(uniqueCreates, 500)
+                  await povBatches.reduce<Promise<void>>((prev, batch) => {
+                    return prev.then(() =>
+                      tx.productOptionValue
+                        .createMany({
+                          data: batch.map((b) => ({
+                            productOptionId: b.productOptionId,
+                            optionValueId: b.optionValueId,
+                          })),
+                          skipDuplicates: true,
+                        })
+                        .then(() => { }),
+                    )
+                  }, Promise.resolve())
+                }
               }
             }
           }
