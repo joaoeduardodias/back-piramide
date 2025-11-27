@@ -119,7 +119,9 @@ export async function updateProduct(app: FastifyInstance) {
               ...(comparePrice === 0 || comparePrice === null || comparePrice === undefined
                 ? { comparePrice: null }
                 : { comparePrice }),
-              ...(weight && { weight }),
+              ...(weight === 0 || weight === null || weight === undefined
+                ? { weight: null }
+                : { weight }),
               // ...(status && { status }),
             },
           })

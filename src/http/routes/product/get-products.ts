@@ -91,6 +91,7 @@ export async function getAllProducts(app: FastifyInstance) {
       if (status) {
         where.status = status
       }
+
       if (brand) {
         where.brand = { name: brand }
       }
