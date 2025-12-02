@@ -35,6 +35,7 @@ import {
   deleteProduct,
   getAddressById,
   getAddresses,
+  getAddressesByUser,
   getAllOptions,
   getAllProducts,
   getBrandById,
@@ -68,6 +69,7 @@ import {
   updateOrderStatus,
   updateProduct,
   updateStatusOrderToCancel,
+  updateUser,
   updateVariantStock,
   uploadImages,
 } from './routes'
@@ -117,6 +119,7 @@ app.register(getProfile)
 app.register(getUsers)
 app.register(requestPasswordRecover)
 app.register(resetPassword)
+app.register(updateUser)
 
 // product routes
 app.register(createProduct)
@@ -149,6 +152,7 @@ app.register(updateStatusOrderToCancel)
 app.register(createAddress)
 app.register(deleteAddress)
 app.register(getAddressById)
+app.register(getAddressesByUser)
 app.register(getAddresses)
 app.register(setDefaultAddress)
 app.register(updateAddress)

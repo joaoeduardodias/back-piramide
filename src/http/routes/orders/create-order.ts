@@ -13,7 +13,6 @@ const orderItemSchema = z.object({
 })
 
 const createOrderSchema = z.object({
-  customerId: z.uuid('Invalid customer ID format').optional(),
   status: z.enum(OrderStatus).default('PENDING'),
   addressId: z.uuid('Invalid address ID format').optional(),
   items: z.array(orderItemSchema).min(1, 'Order must have at least one item'),
@@ -24,7 +23,7 @@ export async function createOrder(app: FastifyInstance) {
     {
       schema: {
         tags: ['Orders'],
-        summary: 'Create  order',
+        summary: 'Create a order',
         body: createOrderSchema,
         security: [
           { bearerAuth: [] },
@@ -37,17 +36,8 @@ export async function createOrder(app: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const { customerId, status, addressId, items } = request.body
-
-      if (customerId) {
-        const customer = await prisma.user.findUnique({
-          where: { id: customerId },
-        })
-
-        if (!customer) {
-          throw new BadRequestError('Customer not found.')
-        }
-      }
+      const user = await request.getCurrentUserId()
+      const { status, addressId, items } = request.body
 
       if (addressId) {
         const address = await prisma.address.findUnique({
@@ -93,7 +83,7 @@ export async function createOrder(app: FastifyInstance) {
       try {
         const order = await prisma.order.create({
           data: {
-            customerId,
+            customerId: user.sub,
             status,
             addressId,
             items: {
@@ -105,35 +95,35 @@ export async function createOrder(app: FastifyInstance) {
               })),
             },
           },
-          include: {
-            customer: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-              },
-            },
-            address: true,
-            items: {
-              include: {
-                product: {
-                  select: {
-                    id: true,
-                    name: true,
-                    slug: true,
-                    price: true,
-                  },
-                },
-                variant: {
-                  select: {
-                    id: true,
-                    sku: true,
-                    price: true,
-                  },
-                },
-              },
-            },
-          },
+          // include: {
+          //   customer: {
+          //     select: {
+          //       id: true,
+          //       name: true,
+          //       email: true,
+          //     },
+          //   },
+          //   address: true,
+          //   items: {
+          //     include: {
+          //       product: {
+          //         select: {
+          //           id: true,
+          //           name: true,
+          //           slug: true,
+          //           price: true,
+          //         },
+          //       },
+          //       variant: {
+          //         select: {
+          //           id: true,
+          //           sku: true,
+          //           price: true,
+          //         },
+          //       },
+          //     },
+          //   },
+          // },
         })
 
         return reply.status(201).send({

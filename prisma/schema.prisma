@@ -12,6 +12,7 @@ model User {
   email        String    @unique
   name         String?
   phone        String?
+  cpf          String?
   passwordHash String?   @map("password_hash")
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
@@ -50,6 +51,7 @@ model Account {
 model Address {
   id         String  @id @default(uuid())
   customerId String  @map("customer_id")
+  name       String
   street     String
   complement String?
   number     String?
@@ -71,7 +73,7 @@ model Product {
   slug           String            @unique
   description    String?
   price          Float
-  status         ProductStatus     @default(DRAFT)
+  status         ProductStatus     @default(PUBLISHED)
   createdAt      DateTime          @default(now()) @map("created_at")
   updatedAt      DateTime          @updatedAt @map("updated_at")
   comparePrice   Float?            @map("compare_price")

@@ -1,31 +1,30 @@
+import { auth } from '@/http/middlewares/auth'
 import { prisma } from '@/lib/prisma'
 import type { FastifyInstance } from 'fastify'
 import type { ZodTypeProvider } from 'fastify-type-provider-zod'
 import { z } from 'zod/v4'
-import { BadRequestError } from '../_errors/bad-request-error'
 
 const addressSchema = z.object({
-  number: z.string().nullable(),
-  street: z.string(),
-  complement: z.string().nullable(),
-  district: z.string().nullable(),
-  city: z.string(),
-  state: z.string(),
-  postalCode: z.string(),
-  isDefault: z.boolean(),
-  id: z.string(),
-  customerId: z.string(),
+  addresses: z.array(z.object({
+    number: z.string().nullable(),
+    name: z.string(),
+    street: z.string(),
+    complement: z.string().nullable(),
+    district: z.string().nullable(),
+    city: z.string(),
+    state: z.string(),
+    postalCode: z.string(),
+    isDefault: z.boolean(),
+    id: z.string(),
+  })),
 })
 
-export async function getAddressById(app: FastifyInstance) {
-  app.withTypeProvider<ZodTypeProvider>().get('/addresses/:id',
+export async function getAddressesByUser(app: FastifyInstance) {
+  app.withTypeProvider<ZodTypeProvider>().register(auth).get('/user/addresses',
     {
       schema: {
         tags: ['Address'],
-        summary: 'Get address by ID',
-        params: z.object({
-          id: z.uuid(),
-        }),
+        summary: 'Get address by User',
         security: [
           { bearerAuth: [] },
         ],
@@ -35,12 +34,12 @@ export async function getAddressById(app: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const { id } = request.params
       const userId = await request.getCurrentUserId()
 
-      const address = await prisma.address.findFirst({
+      const addresses = await prisma.address.findMany({
         select: {
           id: true,
+          name: true,
           number: true,
           street: true,
           complement: true,
@@ -49,19 +48,12 @@ export async function getAddressById(app: FastifyInstance) {
           state: true,
           postalCode: true,
           isDefault: true,
-          customerId: true,
-
         },
         where: {
-          id,
           customerId: userId.sub,
         },
       })
 
-      if (!address) {
-        throw new BadRequestError('Address not found')
-      }
-
-      return reply.send(address)
+      return reply.send({ addresses })
     })
 }

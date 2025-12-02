@@ -31,6 +31,10 @@ const productResponseSchema = z.object({
       sku: z.string(),
       stock: z.number(),
       comparePrice: z.number().nullable(),
+      optionValues: z.array(z.object({
+        id: z.uuid(),
+        optionValueId: z.uuid(),
+      })),
     })),
     options: z.array(z.object({
       id: z.uuid(),
@@ -103,6 +107,12 @@ export async function getProductBySlug(app: FastifyInstance) {
                 stock: true,
                 price: true,
                 comparePrice: true,
+                optionValues: {
+                  select: {
+                    id: true,
+                    optionValueId: true,
+                  },
+                },
               },
             },
             productOptions: {

@@ -6,6 +6,7 @@ import { z } from 'zod/v4'
 
 const addressSchema = z.object({
   street: z.string().min(1, 'Street is required'),
+  name: z.string('Name is required'),
   complement: z.string().optional(),
   number: z.string().optional(),
   district: z.string().optional(),
@@ -44,6 +45,7 @@ export async function createAddress(app: FastifyInstance) {
         postalCode,
         country,
         isDefault,
+        name,
       } = request.body
 
       const userId = await request.getCurrentUserId()
@@ -57,6 +59,7 @@ export async function createAddress(app: FastifyInstance) {
       const address = await prisma.address.create({
         data: {
           customerId: userId.sub,
+          name,
           street,
           complement,
           number,
