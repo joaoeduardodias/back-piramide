@@ -13,7 +13,6 @@ const addressSchema = z.object({
   city: z.string().min(1, 'City is required'),
   state: z.string().min(1, 'State is required'),
   postalCode: z.string().min(1, 'Postal code is required'),
-  country: z.string().default('BR'),
   isDefault: z.boolean().default(false),
 })
 
@@ -43,13 +42,21 @@ export async function createAddress(app: FastifyInstance) {
         city,
         state,
         postalCode,
-        country,
         isDefault,
         name,
       } = request.body
 
       const userId = await request.getCurrentUserId()
-      if (isDefault) {
+      let defaultAddress = isDefault
+      const existingAddresses = await prisma.address.count({
+        where: { customerId: userId.sub },
+      })
+
+      if (existingAddresses === 0) {
+        defaultAddress = true
+      }
+
+      if (defaultAddress) {
         await prisma.address.updateMany({
           where: { customerId: userId.sub },
           data: { isDefault: false },
@@ -67,8 +74,7 @@ export async function createAddress(app: FastifyInstance) {
           city,
           state,
           postalCode,
-          country,
-          isDefault,
+          isDefault: defaultAddress,
         },
       })
 

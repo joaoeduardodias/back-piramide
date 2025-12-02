@@ -52,6 +52,9 @@ export async function getAddressesByUser(app: FastifyInstance) {
         where: {
           customerId: userId.sub,
         },
+        orderBy: {
+          isDefault: 'desc',
+        },
       })
 
       return reply.send({ addresses })

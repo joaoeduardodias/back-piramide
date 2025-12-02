@@ -1,3 +1,4 @@
+import { auth } from '@/http/middlewares/auth'
 import { prisma } from '@/lib/prisma'
 import type { FastifyInstance } from 'fastify'
 import type { ZodTypeProvider } from 'fastify-type-provider-zod'
@@ -18,7 +19,7 @@ const addressSchema = z.object({
 })
 
 export async function getAddressById(app: FastifyInstance) {
-  app.withTypeProvider<ZodTypeProvider>().get('/addresses/:id',
+  app.withTypeProvider<ZodTypeProvider>().register(auth).get('/addresses/:id',
     {
       schema: {
         tags: ['Address'],

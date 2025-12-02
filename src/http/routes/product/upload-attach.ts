@@ -9,7 +9,7 @@ const attachImagesSchema = z.object({
   files: z.array(
     z.object({
       fileKey: z.string(),
-      url: z.string().url(),
+      url: z.url(),
       sortOrder: z.number().optional(),
     }),
   ),
