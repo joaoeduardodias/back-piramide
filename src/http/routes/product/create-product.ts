@@ -24,7 +24,7 @@ const createProductSchema = z.object({
     alt: z.string().optional(),
     sortOrder: z.number().int().min(0).default(0),
     fileKey: z.string(),
-  })),
+  })).optional(),
   options: z.array(z.object({
     name: z.string(),
     values: z.array(z.object({
@@ -32,7 +32,7 @@ const createProductSchema = z.object({
       value: z.string(),
       content: z.string().optional(),
     })),
-  })),
+  })).optional(),
   variants: z.array(z.object({
     sku: z.string(),
     price: z.number().optional(),
@@ -58,169 +58,143 @@ export async function createProduct(app: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const {
-        name,
-        slug,
-        description,
-        tags,
-        featured,
-        price,
-        images,
-        comparePrice,
-        weight,
-        status,
-        categoryIds,
-        variants,
-        options,
-        brandId,
-      } = request.body
+      const body = request.body as z.infer<typeof createProductSchema>
 
-      const existingProduct = await prisma.product.findUnique({
-        where: { slug },
-      })
-
-      if (existingProduct) { throw new BadRequestError('Já existe um produto com este Nome.') }
-      if (categoryIds?.length) {
-        const categories = await prisma.category.findMany({
-          where: { id: { in: categoryIds } },
-        })
-
-        if (categories.length !== categoryIds.length) { throw new BadRequestError('Uma ou mais categorias não existem.') }
+      const existing = await prisma.product.findUnique({ where: { slug: body.slug } })
+      if (existing) {
+        throw new BadRequestError('Já existe um produto com este slug.')
       }
-      try {
-        const product = await prisma.$transaction(async (tx) => {
-          const createdProduct = await tx.product.create({
-            data: {
-              name,
-              slug,
-              description,
-              tags,
-              featured,
-              price,
-              comparePrice,
-              weight,
-              status,
-              sales: 0,
-              brandId,
+      if (body.categoryIds?.length) {
+        const cats = await prisma.category.findMany({ where: { id: { in: body.categoryIds } } })
+        if (cats.length !== body.categoryIds.length) {
+          throw new BadRequestError('Uma ou mais categorias informadas não existem.')
+        }
+      }
 
+      try {
+        const createdProduct = await prisma.$transaction(async (tx) => {
+          const prod = await tx.product.create({
+            data: {
+              name: body.name,
+              slug: body.slug,
+              description: body.description ?? null,
+              tags: body.tags ?? null,
+              featured: body.featured,
+              price: body.price,
+              comparePrice: body.comparePrice ?? null,
+              weight: body.weight ?? null,
+              status: body.status,
+              sales: 0,
+              brandId: body.brandId,
             },
           })
 
-          if (categoryIds?.length) {
+          if (body.categoryIds?.length) {
             await tx.productCategory.createMany({
-              data: categoryIds.map((categoryId) => ({
-                productId: createdProduct.id,
-                categoryId,
+              data: body.categoryIds.map((catId) => ({
+                productId: prod.id,
+                categoryId: catId,
               })),
               skipDuplicates: true,
             })
           }
 
-          if (variants?.length) {
-            const createdVariants = await Promise.all(
-              variants.map(async (variant) => {
-                const existingVariant = await tx.productVariant.findUnique({
-                  where: { sku: variant.sku },
-                })
-
-                if (existingVariant) {
-                  throw new BadRequestError(`Já existe um produto com este SKU - ${existingVariant.sku}`)
-                }
-
-                return tx.productVariant.create({
-                  data: {
-                    productId: createdProduct.id,
-                    sku: variant.sku,
-                    price: variant.price ?? null,
-                    comparePrice: variant.comparePrice ?? null,
-                    stock: variant.stock ?? 0,
-                  },
-                })
-              }),
-            )
-
-            const variantOptionValuesData = createdVariants.flatMap((createdVariant, index) => {
-              const variant = variants[index]
-              if (!variant.optionValueIds?.length) return []
-
-              return variant.optionValueIds.map((optionValueId: string) => ({
-                variantId: createdVariant.id,
-                optionValueId,
-              }))
-            })
-
-            if (variantOptionValuesData.length) {
-              await tx.variantOptionValue.createMany({
-                data: variantOptionValuesData,
-                skipDuplicates: true,
-              })
-            }
-          }
-
-          if (options && options.length > 0) {
-            for (const opt of options) {
-              const { name: optionName, values } = opt
-              if (!values?.length) continue
-
-              const option = await tx.option.findUnique({
-                where: { name: optionName },
-                select: { id: true },
-              })
-
-              if (!option) {
-                console.warn(`Opção "${optionName}" não encontrada no banco.`)
-                continue
+          // 3. Criar ProductOption + ProductOptionValue (opções do produto)
+          if (body.options && body.options.length) {
+            for (const opt of body.options) {
+              const optDb = await tx.option.findUnique({ where: { name: opt.name } })
+              if (!optDb) {
+                throw new BadRequestError(`Opção "${opt.name}" informada não existe.`)
               }
-
-              const productOption = await tx.productOption.upsert({
+              const prodOpt = await tx.productOption.upsert({
                 where: {
                   productId_optionId: {
-                    productId: createdProduct.id,
-                    optionId: option.id,
+                    productId: prod.id,
+                    optionId: optDb.id,
                   },
                 },
-                update: {},
-                create: {
-                  productId: createdProduct.id,
-                  optionId: option.id,
-                },
+                create: { productId: prod.id, optionId: optDb.id },
+                update: {}, // nada a atualizar se já existe
               })
 
-              await Promise.all(
-                values.map((v) =>
-                  tx.productOptionValue.upsert({
-                    where: {
-                      productOptionId_optionValueId: {
-                        productOptionId: productOption.id,
-                        optionValueId: v.id,
-                      },
-                    },
-                    create: {
-                      productOptionId: productOption.id,
+              for (const v of opt.values) {
+                const ov = await tx.optionValue.findUnique({ where: { id: v.id } })
+                if (!ov) {
+                  throw new BadRequestError(`OptionValue id "${v.id}" inválido para a opção "${opt.name}".`)
+                }
+                await tx.productOptionValue.upsert({
+                  where: {
+                    productOptionId_optionValueId: {
+                      productOptionId: prodOpt.id,
                       optionValueId: v.id,
                     },
-                    update: {},
-                  }),
-                ),
-              )
+                  },
+                  create: {
+                    productOptionId: prodOpt.id,
+                    optionValueId: v.id,
+                  },
+                  update: {},
+                })
+              }
             }
           }
-          if (images && images.length > 0) {
+
+          // 4. Criar imagens se houver
+          if (body.images && body.images.length) {
             await tx.productImage.createMany({
-              data: images.map((f, i) => ({
-                productId: createdProduct.id,
+              data: body.images.map((f, i) => ({
+                productId: prod.id,
                 fileKey: f.fileKey,
                 url: f.url,
-                sortOrder: i + 1,
+                alt: f.alt ?? null,
+                sortOrder: f.sortOrder ?? i,
               })),
             })
           }
-          return createdProduct
+
+          // 5. Criar variantes + associar optionValue → variant
+          if (body.variants && body.variants.length) {
+            for (const v of body.variants) {
+              const existingVar = await tx.productVariant.findUnique({ where: { sku: v.sku } })
+              if (existingVar) {
+                throw new BadRequestError(`Variante com SKU "${v.sku}" já existe.`)
+              }
+              const newVar = await tx.productVariant.create({
+                data: {
+                  productId: prod.id,
+                  sku: v.sku,
+                  price: v.price ?? null,
+                  comparePrice: v.comparePrice ?? null,
+                  stock: v.stock ?? 0,
+                },
+              })
+
+              if (v.optionValueIds && v.optionValueIds.length) {
+                for (const ovId of v.optionValueIds) {
+                  const ov = await tx.optionValue.findUnique({ where: { id: ovId } })
+                  if (!ov) {
+                    throw new BadRequestError(`OptionValue id "${ovId}" inválido em variante SKU="${v.sku}".`)
+                  }
+                  await tx.variantOptionValue.create({
+                    data: {
+                      variantId: newVar.id,
+                      optionValueId: ovId,
+                    },
+                  })
+                }
+              }
+            }
+          }
+
+          return prod
         })
 
-        return reply.status(201).send({ productId: product.id })
+        return reply.status(201).send({ productId: createdProduct.id })
       } catch (err) {
-        console.error(err)
+        console.error('Erro ao criar produto:', err)
+        if (err instanceof BadRequestError) {
+          throw err
+        }
         throw new BadRequestError('Falha ao criar produto.')
       }
     },

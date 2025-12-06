@@ -1,4 +1,5 @@
 /* eslint-disable @stylistic/max-len */
+
 import { prisma } from '@/lib/prisma'
 import { ProductStatus } from '@prisma/client'
 import type { FastifyInstance } from 'fastify'
@@ -20,7 +21,7 @@ const updateProductSchema = z.object({
   categoryIds: z.array(z.uuid()).nullish(),
   images: z.array(z.object({
     id: z.uuid().nullish(),
-    url: z.url(),
+    url: z.string().url(),
     alt: z.string().nullish(),
     sortOrder: z.number().int().min(0).default(0),
     fileKey: z.string().nullish(),
@@ -30,7 +31,7 @@ const updateProductSchema = z.object({
     values: z.array(z.object({
       id: z.uuid(),
       value: z.string(),
-      content: z.string().nullish().nullable(),
+      content: z.string().nullish(),
     })),
   })).nullish(),
   variants: z.array(z.object({
@@ -44,50 +45,27 @@ const updateProductSchema = z.object({
 })
 
 export async function updateProduct(app: FastifyInstance) {
-  app.withTypeProvider<ZodTypeProvider>().put('/products/:id',
+  app.withTypeProvider<ZodTypeProvider>().put(
+    '/products/:id',
     {
       schema: {
         tags: ['Products'],
         summary: 'Update a product',
+        params: z.object({ id: z.uuid() }),
         body: updateProductSchema,
-        params: z.object({
-          id: z.uuid(),
-        }),
-        response: {
-          200: z.object({
-            productId: z.uuid(),
-          }),
-        },
+        response: { 200: z.object({ productId: z.uuid() }) },
       },
     },
     async (request, reply) => {
       const { id } = request.params
-      const {
-        name,
-        slug,
-        description,
-        tags,
-        featured,
-        price,
-        comparePrice,
-        weight,
-        brandId,
-        categoryIds,
-        options,
-        variants,
-      } = request.body
+      const body = request.body
+
       const existingProduct = await prisma.product.findUnique({
         where: { id },
         include: {
-          images: true,
           categories: true,
           variants: { include: { optionValues: true } },
-          productOptions: {
-            include: {
-              option: true,
-              values: true,
-            },
-          },
+          productOptions: { include: { values: true } },
         },
       })
 
@@ -95,198 +73,139 @@ export async function updateProduct(app: FastifyInstance) {
         throw new BadRequestError('Produto não encontrado.')
       }
 
-      if (categoryIds?.length) {
-        const categories = await prisma.category.findMany({
-          where: { id: { in: categoryIds } },
+      if (body.categoryIds) {
+        const cats = await prisma.category.findMany({
+          where: { id: { in: body.categoryIds } },
         })
-        if (categories.length !== categoryIds.length) {
-          throw new BadRequestError('Uma ou mais categorias não existem.')
+        if (cats.length !== body.categoryIds.length) {
+          throw new BadRequestError('Uma ou mais categorias informadas não existem.')
         }
       }
 
       try {
-        const product = await prisma.$transaction(async (tx) => {
-          const updatedProduct = await tx.product.update({
+        const updated = await prisma.$transaction(async (tx) => {
+          const pr = await tx.product.update({
             where: { id },
             data: {
-              ...(name && { name }),
-              ...(slug && { slug }),
-              ...(brandId && { brandId }),
-              ...(description && { description }),
-              ...(tags && { tags }),
-              ...(featured && { featured }),
-              ...(price && { price }),
-              ...(comparePrice === 0 || comparePrice === null || comparePrice === undefined
+              ...(body.name && { name: body.name }),
+              ...(body.slug && { slug: body.slug }),
+              ...(body.description && { description: body.description }),
+              ...(body.tags && { tags: body.tags }),
+              ...(body.featured && { featured: body.featured }),
+              ...(body.price && { price: body.price }),
+              ...(body.comparePrice === 0 || body.comparePrice === null || body.comparePrice === undefined
                 ? { comparePrice: null }
-                : { comparePrice }),
-              ...(weight === 0 || weight === null || weight === undefined
+                : { comparePrice: body.comparePrice }),
+              ...(body.weight === 0 || body.weight === null || body.weight === undefined
                 ? { weight: null }
-                : { weight }),
-              // ...(status && { status }),
+                : { weight: body.weight }),
+              ...(body.brandId && { brandId: body.brandId }),
             },
           })
 
-          if (categoryIds) {
-            const existingCategoryIds = existingProduct.categories
-              .map(c => c.categoryId)
-            const toAdd = categoryIds.filter(id => !existingCategoryIds
-              .includes(id))
-            const toRemove = existingCategoryIds
-              .filter(id => !categoryIds.includes(id))
+          if (body.categoryIds) {
+            const existingCatIds = existingProduct.categories.map((c) => c.categoryId)
+            const toAdd = body.categoryIds.filter((cid) => !existingCatIds.includes(cid))
+            const toRemove = existingCatIds.filter((cid) => !body.categoryIds!.includes(cid))
 
-            if (toAdd.length) {
+            if (toAdd.length > 0) {
               await tx.productCategory.createMany({
-                data: toAdd.map(categoryId => ({ productId: id, categoryId })),
+                data: toAdd.map((categoryId) => ({
+                  productId: id,
+                  categoryId,
+                })),
+                skipDuplicates: true,
               })
             }
-
-            if (toRemove.length) {
+            if (toRemove.length > 0) {
               await tx.productCategory.deleteMany({
-                where: { productId: id, categoryId: { in: toRemove } },
+                where: {
+                  productId: id,
+                  categoryId: { in: toRemove },
+                },
               })
             }
           }
 
-          if (variants) {
-            const existingVariants = existingProduct.variants
-            const incomingVariantIds = variants.filter(v => v.id)
-              .map(v => v.id!)
-            const toDelete = existingVariants.filter(v => !incomingVariantIds
-              .includes(v.id))
+          if (body.options) {
+            for (const opt of body.options) {
+              const optDb = await tx.option.findUnique({ where: { name: opt.name } })
+              if (!optDb) throw new BadRequestError(`Opção "${opt.name}" inválida.`)
 
-            if (toDelete.length) {
-              await tx.productVariant.deleteMany({
-                where: { id: { in: toDelete.map(v => v.id) } },
+              const prodOpt = await tx.productOption.upsert({
+                where: { productId_optionId: { productId: id, optionId: optDb.id } },
+                create: { productId: id, optionId: optDb.id },
+                update: {},
               })
-            }
 
-            for (const variant of variants) {
-              if (variant.id) {
-                await tx.productVariant.update({
-                  where: { id: variant.id },
-                  data: {
-                    sku: variant.sku,
-                    price: variant.price ?? null,
-                    comparePrice: variant.comparePrice ?? null,
-                    stock: variant.stock ?? 0,
-                  },
-                })
-              } else {
-                await tx.productVariant.create({
-                  data: {
-                    productId: id,
-                    sku: variant.sku,
-                    price: variant.price ?? null,
-                    comparePrice: variant.comparePrice ?? null,
-                    stock: variant.stock ?? 0,
-                  },
+              for (const v of opt.values) {
+                const ov = await tx.optionValue.findUnique({ where: { id: v.id } })
+                if (!ov) throw new BadRequestError(`OptionValue id "${v.id}" inválido.`)
+
+                await tx.productOptionValue.upsert({
+                  where: { productOptionId_optionValueId: { productOptionId: prodOpt.id, optionValueId: ov.id } },
+                  create: { productOptionId: prodOpt.id, optionValueId: ov.id },
+                  update: {},
                 })
               }
             }
           }
 
-          const chunk = <T>(arr: T[], size = 500): T[][] =>
-            Array.from({ length: Math.ceil(arr.length / size) }, (_, i) =>
-              arr.slice(i * size, i * size + size),
-            )
-
-          if (options && options.length > 0) {
-            // 1) nomes únicos e válidos
-            const incomingNames = Array.from(
-              new Set(options.map((o) => o?.name).filter(Boolean)),
-            )
-
-            if (incomingNames.length > 0) {
-              // 2) buscar todas as options de uma vez
-              const existingOptions = await tx.option.findMany({
-                where: { name: { in: incomingNames } },
-                select: { id: true, name: true },
+          if (body.variants) {
+            const incomingIds = body.variants.filter((v) => v.id).map((v) => v.id!)
+            const toDelete = existingProduct.variants.filter((v) => !incomingIds.includes(v.id))
+            if (toDelete.length) {
+              await tx.productVariant.deleteMany({
+                where: { id: { in: toDelete.map((v) => v.id) } },
               })
+            }
 
-              if (existingOptions.length > 0) {
-                // maps para lookup
-                const optionNameToId = new Map(existingOptions.map((o) => [o.name, o.id]))
-                const existingOptionIds = existingOptions.map((o) => o.id)
-
-                // 3) preparar productOption creates (data para createMany)
-                const productOptionCreates = existingOptionIds.map((optionId) => ({
-                  productId: id,
-                  optionId,
-                }))
-
-                // 4) criar productOption em batches sequenciais (sem for) usando reduce -> encadeia promises
-                const poBatches = chunk(productOptionCreates, 500)
-                await poBatches.reduce<Promise<void>>((prev, batch) => {
-                  return prev.then(() =>
-                    tx.productOption.createMany({ data: batch, skipDuplicates: true }).then(() => { }),
-                  )
-                }, Promise.resolve())
-
-                // 5) buscar productOptions para obter ids
-                const productOptions = await tx.productOption.findMany({
-                  where: {
-                    productId: id,
-                    optionId: { in: existingOptionIds },
+            for (const v of body.variants) {
+              if (v.id) {
+                await tx.productVariant.update({
+                  where: { id: v.id },
+                  data: {
+                    sku: v.sku,
+                    price: v.price ?? null,
+                    comparePrice: v.comparePrice ?? null,
+                    stock: v.stock ?? 0,
                   },
-                  select: { id: true, optionId: true },
                 })
-
-                const optionIdToProductOptionId = new Map(
-                  productOptions.map((po) => [po.optionId, po.id]),
-                )
-
-                // 6) construir lista de pares (productOptionId, optionValueId) usando flatMap / map (sem for)
-                const povCreatesAll = options
-                  .map((opt) => {
-                    const optionId = optionNameToId.get(opt.name)
-                    if (!optionId) return [] // option inexistente
-                    const productOptionId = optionIdToProductOptionId.get(optionId)
-                    if (!productOptionId) return [] // sem productOptionId encontrado
-                    return (Array.isArray(opt.values)
-                      ? opt.values
-                      : [])
-                      .filter(Boolean)
-                      .map((v) => (v && v.id
-                        ? { productOptionId, optionValueId: v.id }
-                        : null))
-                      .filter(Boolean) as { productOptionId: string; optionValueId: string }[]
-                  })
-                  .flat()
-
-                if (povCreatesAll.length > 0) {
-                  const uniqueMap = new Map<string, { productOptionId: string; optionValueId: string }>()
-                  povCreatesAll.forEach((p) => {
-                    const key = `${p.productOptionId}__${p.optionValueId}`
-                    if (!uniqueMap.has(key)) uniqueMap.set(key, p)
-                  })
-                  const uniqueCreates = Array.from(uniqueMap.values())
-
-                  // 8) criar productOptionValue em batches sequenciais (sem for)
-                  const povBatches = chunk(uniqueCreates, 500)
-                  await povBatches.reduce<Promise<void>>((prev, batch) => {
-                    return prev.then(() =>
-                      tx.productOptionValue
-                        .createMany({
-                          data: batch.map((b) => ({
-                            productOptionId: b.productOptionId,
-                            optionValueId: b.optionValueId,
-                          })),
-                          skipDuplicates: true,
-                        })
-                        .then(() => { }),
-                    )
-                  }, Promise.resolve())
+                await tx.variantOptionValue.deleteMany({ where: { variantId: v.id } })
+                if (v.optionValueIds) {
+                  for (const ovId of v.optionValueIds) {
+                    await tx.variantOptionValue.create({
+                      data: { variantId: v.id, optionValueId: ovId },
+                    })
+                  }
+                }
+              } else {
+                const newVar = await tx.productVariant.create({
+                  data: {
+                    productId: id,
+                    sku: v.sku,
+                    price: v.price ?? null,
+                    comparePrice: v.comparePrice ?? null,
+                    stock: v.stock ?? 0,
+                  },
+                })
+                if (v.optionValueIds) {
+                  for (const ovId of v.optionValueIds) {
+                    await tx.variantOptionValue.create({
+                      data: { variantId: newVar.id, optionValueId: ovId },
+                    })
+                  }
                 }
               }
             }
           }
 
-          return updatedProduct
+          return pr
         })
 
-        return reply.status(200).send({ productId: product.id })
+        return reply.status(200).send({ productId: updated.id })
       } catch (err) {
-        console.error(err)
+        console.error('Erro ao atualizar produto:', err)
         throw new BadRequestError('Falha ao atualizar produto.')
       }
     },
