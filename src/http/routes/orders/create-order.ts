@@ -30,7 +30,7 @@ export async function createOrder(app: FastifyInstance) {
         security: [{ bearerAuth: [] }],
         response: {
           201: z.object({
-            orderId: z.uuid(),
+            orderNumber: z.number(),
           }),
         },
       },
@@ -173,7 +173,7 @@ export async function createOrder(app: FastifyInstance) {
         })
 
         return reply.status(201).send({
-          orderId: order.id,
+          orderNumber: order.number,
         })
       } catch {
         throw new BadRequestError('Failed to create order.')

@@ -214,6 +214,7 @@ model VariantOptionValue {
 
 model Order {
   id         String      @id @default(uuid())
+  number     Int         @unique @default(autoincrement())
   customerId String?     @map("customer_id")
   status     OrderStatus @default(PENDING)
   createdAt  DateTime    @default(now()) @map("created_at")
