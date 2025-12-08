@@ -1,3 +1,4 @@
+import { auth } from '@/http/middlewares/auth'
 import { prisma } from '@/lib/prisma'
 import { OrderStatus } from '@prisma/client'
 import type { FastifyInstance } from 'fastify'
@@ -19,15 +20,14 @@ const createOrderSchema = z.object({
 })
 
 export async function createOrder(app: FastifyInstance) {
-  app.withTypeProvider<ZodTypeProvider>().post('/orders',
+  app.withTypeProvider<ZodTypeProvider>().register(auth).post(
+    '/orders',
     {
       schema: {
         tags: ['Orders'],
         summary: 'Create a order',
         body: createOrderSchema,
-        security: [
-          { bearerAuth: [] },
-        ],
+        security: [{ bearerAuth: [] }],
         response: {
           201: z.object({
             orderId: z.uuid(),
@@ -50,19 +50,31 @@ export async function createOrder(app: FastifyInstance) {
       }
 
       const productIds = items.map(item => item.productId)
+
       const products = await prisma.product.findMany({
         where: { id: { in: productIds } },
       })
 
-      if (products.length !== productIds.length) {
+      const uniqueProductIds = [...new Set(productIds)]
+
+      if (products.length !== uniqueProductIds.length) {
         throw new BadRequestError('One or more products not found.')
       }
 
-      const variantIds = items.filter(item =>
-        item.variantId).map(item => item.variantId!)
+      const variantIds = items
+        .filter(item => item.variantId)
+        .map(item => item.variantId!)
+
+      let variants: { id: string; productId: string; stock: number }[] = []
+
       if (variantIds.length > 0) {
-        const variants = await prisma.productVariant.findMany({
+        variants = await prisma.productVariant.findMany({
           where: { id: { in: variantIds } },
+          select: {
+            id: true,
+            productId: true,
+            stock: true,
+          },
         })
 
         if (variants.length !== variantIds.length) {
@@ -73,57 +85,91 @@ export async function createOrder(app: FastifyInstance) {
           if (item.variantId) {
             const variant = variants.find(v => v.id === item.variantId)
             if (variant && variant.productId !== item.productId) {
-              throw new BadRequestError(`Variant ${item.variantId} 
-                does not belong to product ${item.productId}.`)
+              throw new BadRequestError(
+                `Variant ${item.variantId} does
+                 not belong to product ${item.productId}.`,
+              )
             }
+          }
+        }
+
+        const quantitiesByVariant = items.reduce<Record<string, number>>(
+          (acc, item) => {
+            if (item.variantId) {
+              acc[item.variantId] = (acc[item.variantId] ?? 0) + item.quantity
+            }
+            return acc
+          },
+          {},
+        )
+
+        for (const [variantId, totalQuantity] of Object.entries(
+          quantitiesByVariant,
+        )) {
+          const variant = variants.find(v => v.id === variantId)
+
+          if (!variant) {
+            throw new BadRequestError(
+              `Variant ${variantId} not found for stock validation.`,
+            )
+          }
+
+          if (variant.stock < totalQuantity) {
+            throw new BadRequestError(
+              `Insufficient stock for variant ${variantId}.
+               Available: ${variant.stock}, requested: ${totalQuantity}.`,
+            )
           }
         }
       }
 
       try {
-        const order = await prisma.order.create({
-          data: {
-            customerId: user.sub,
-            status,
-            addressId,
-            items: {
-              create: items.map(item => ({
-                productId: item.productId,
-                variantId: item.variantId,
-                quantity: item.quantity,
-                unitPrice: item.unitPrice,
-              })),
+        const order = await prisma.$transaction(async tx => {
+          const createdOrder = await tx.order.create({
+            data: {
+              customerId: user.sub,
+              status,
+              addressId,
+              items: {
+                create: items.map(item => ({
+                  productId: item.productId,
+                  variantId: item.variantId,
+                  quantity: item.quantity,
+                  unitPrice: item.unitPrice,
+                })),
+              },
             },
-          },
-          // include: {
-          //   customer: {
-          //     select: {
-          //       id: true,
-          //       name: true,
-          //       email: true,
-          //     },
-          //   },
-          //   address: true,
-          //   items: {
-          //     include: {
-          //       product: {
-          //         select: {
-          //           id: true,
-          //           name: true,
-          //           slug: true,
-          //           price: true,
-          //         },
-          //       },
-          //       variant: {
-          //         select: {
-          //           id: true,
-          //           sku: true,
-          //           price: true,
-          //         },
-          //       },
-          //     },
-          //   },
-          // },
+          })
+
+          if (variantIds.length > 0) {
+            const quantitiesByVariant = items.reduce<Record<string, number>>(
+              (acc, item) => {
+                if (item.variantId) {
+                  acc[item.variantId] =
+                    (acc[item.variantId] ?? 0) + item.quantity
+                }
+                return acc
+              },
+              {},
+            )
+
+            await Promise.all(
+              Object.entries(quantitiesByVariant).map(
+                async ([variantId, totalQuantity]) => {
+                  await tx.productVariant.update({
+                    where: { id: variantId },
+                    data: {
+                      stock: {
+                        decrement: totalQuantity,
+                      },
+                    },
+                  })
+                },
+              ),
+            )
+          }
+
+          return createdOrder
         })
 
         return reply.status(201).send({
