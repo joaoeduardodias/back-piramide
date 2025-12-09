@@ -1,3 +1,4 @@
+/* eslint-disable @stylistic/max-len */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { prisma } from '@/lib/prisma'
 import type { Prisma } from '@prisma/client'
@@ -22,6 +23,13 @@ const getProductsQuerySchema = z.object({
   category: z.string().optional(),
   search: z.string().optional(),
   brand: z.string().optional(),
+  optionValues: z
+    .string()
+    .optional()
+    .transform((val) => {
+      if (!val) return []
+      return val.split(',').filter(Boolean)
+    }),
 })
 
 const productsResponseSchema = z.object({
@@ -83,7 +91,7 @@ export async function getAllProducts(app: FastifyInstance) {
     },
     async (request, reply) => {
       const {
-        page, limit, status, category, search, featured, sortBy, brand,
+        page, limit, status, category, search, featured, sortBy, brand, optionValues,
       } = request.query
 
       const skip = (page - 1) * limit
@@ -124,6 +132,21 @@ export async function getAllProducts(app: FastifyInstance) {
           some: {
             category: {
               name: category,
+            },
+          },
+        }
+      }
+      if (optionValues && optionValues.length > 0) {
+        where.variants = {
+          some: {
+            optionValues: {
+              some: {
+                optionValue: {
+                  value: {
+                    in: optionValues,
+                  },
+                },
+              },
             },
           },
         }
