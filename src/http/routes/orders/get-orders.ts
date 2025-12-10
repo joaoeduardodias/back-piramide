@@ -10,7 +10,8 @@ const getOrdersQuerySchema = z.object({
     parseInt(val)).pipe(z.number().int().min(1)).default(1),
   limit: z.string().transform(val =>
     parseInt(val)).pipe(z.number().int().min(1).max(100)).default(10),
-  status: z.enum(OrderStatus).optional(),
+  // status: z.enum(OrderStatus).optional(),
+  status: z.string().optional(),
   customerId: z.uuid().optional(),
   startDate: z.date().optional(),
   endDate: z.date().optional(),
@@ -20,6 +21,7 @@ const responseOrders = z.object({
   orders: z.array(
     z.object({
       id: z.uuid(),
+      number: z.number(),
       status: z.enum(OrderStatus),
       total: z.number(),
       itemsCount: z.number(),
@@ -29,6 +31,8 @@ const responseOrders = z.object({
         id: z.uuid(),
         email: z.email(),
         name: z.string().nullable(),
+        phone: z.string().nullable(),
+        cpf: z.string().nullable(),
       }).nullable(),
       items: z.array(z.object({
         id: z.uuid(),
@@ -40,7 +44,16 @@ const responseOrders = z.object({
           slug: z.string(),
         }),
       })),
-
+      address: z.object({
+        number: z.string().nullable(),
+        name: z.string(),
+        street: z.string(),
+        complement: z.string().nullable(),
+        district: z.string().nullable(),
+        city: z.string(),
+        state: z.string(),
+        postalCode: z.string(),
+      }).nullable(),
     }),
   ),
   pagination: z.object({
@@ -79,9 +92,8 @@ export async function getOrders(app: FastifyInstance) {
       } = request.query
       const skip = (page - 1) * limit
       const where: Prisma.OrderWhereInput = {}
-
       if (status) {
-        where.status = status
+        where.status = status as OrderStatus
       }
 
       if (customerId) {
@@ -106,6 +118,7 @@ export async function getOrders(app: FastifyInstance) {
             take: limit,
             select: {
               id: true,
+              number: true,
               status: true,
               createdAt: true,
               updatedAt: true,
@@ -123,11 +136,25 @@ export async function getOrders(app: FastifyInstance) {
                   },
                 },
               },
+              address: {
+                select: {
+                  city: true,
+                  district: true,
+                  name: true,
+                  number: true,
+                  street: true,
+                  complement: true,
+                  postalCode: true,
+                  state: true,
+                },
+              },
               customer: {
                 select: {
                   id: true,
                   name: true,
                   email: true,
+                  phone: true,
+                  cpf: true,
                 },
               },
             },
@@ -135,7 +162,6 @@ export async function getOrders(app: FastifyInstance) {
           }),
           prisma.order.count({ where }),
         ])
-
         const ordersWithTotal = orders.map(order => ({
           ...order,
           total: order.items.reduce((sum, item) => {
