@@ -17,6 +17,7 @@ const orderItemSchema = z.object({
 })
 
 const updateOrderSchema = z.object({
+  trackingCode: z.string().optional(),
   customerId: z.uuid('Invalid customer ID format').optional(),
   paymentMethod: z.enum(PaymentMethod).optional(),
   status: z.enum(OrderStatus).optional(),
@@ -31,6 +32,7 @@ const responseOrderSchema = z.object({
   total: z.number(),
   itemsCount: z.number(),
   paymentMethod: z.enum(PaymentMethod),
+  trackingCode: z.string().nullish(),
   addressId: z.uuid().nullable(),
   customer: z
     .object({
@@ -98,6 +100,7 @@ export async function updateOrder(app: FastifyInstance) {
         status,
         addressId,
         paymentMethod,
+        trackingCode,
         items,
       } = request.body
 
@@ -170,6 +173,7 @@ export async function updateOrder(app: FastifyInstance) {
           data: {
             ...(customerId !== undefined && { customerId }),
             ...(paymentMethod !== undefined && { paymentMethod }),
+            ...(trackingCode !== undefined && { trackingCode }),
             ...(status && { status }),
             ...(addressId !== undefined && { addressId }),
             ...(items && {
