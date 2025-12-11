@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma'
-import { OrderStatus } from '@prisma/client'
+import { OrderStatus, PaymentMethod } from '@prisma/client'
 import type { FastifyInstance } from 'fastify'
 import type { ZodTypeProvider } from 'fastify-type-provider-zod'
 import z from 'zod/v4'
@@ -18,6 +18,7 @@ const orderItemSchema = z.object({
 
 const updateOrderSchema = z.object({
   customerId: z.uuid('Invalid customer ID format').optional(),
+  paymentMethod: z.enum(PaymentMethod).optional(),
   status: z.enum(OrderStatus).optional(),
   addressId: z.uuid('Invalid address ID format').optional(),
   items: z.array(orderItemSchema).optional(),
@@ -29,6 +30,7 @@ const responseOrderSchema = z.object({
   updatedAt: z.date(),
   total: z.number(),
   itemsCount: z.number(),
+  paymentMethod: z.enum(PaymentMethod),
   addressId: z.uuid().nullable(),
   customer: z
     .object({
@@ -91,7 +93,13 @@ export async function updateOrder(app: FastifyInstance) {
     },
     async (request, reply) => {
       const { id } = request.params
-      const { customerId, status, addressId, items } = request.body
+      const {
+        customerId,
+        status,
+        addressId,
+        paymentMethod,
+        items,
+      } = request.body
 
       const existingOrder = await prisma.order.findUnique({
         where: { id },
@@ -161,6 +169,7 @@ export async function updateOrder(app: FastifyInstance) {
           where: { id },
           data: {
             ...(customerId !== undefined && { customerId }),
+            ...(paymentMethod !== undefined && { paymentMethod }),
             ...(status && { status }),
             ...(addressId !== undefined && { addressId }),
             ...(items && {

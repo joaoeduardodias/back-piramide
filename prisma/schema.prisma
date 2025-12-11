@@ -213,16 +213,17 @@ model VariantOptionValue {
 }
 
 model Order {
-  id         String      @id @default(uuid())
-  number     Int         @unique @default(autoincrement())
-  customerId String?     @map("customer_id")
-  status     OrderStatus @default(PENDING)
-  createdAt  DateTime    @default(now()) @map("created_at")
-  updatedAt  DateTime    @updatedAt @map("updated_at")
-  addressId  String?
-  address    Address?    @relation(fields: [addressId], references: [id])
-  customer   User?       @relation(fields: [customerId], references: [id])
-  items      OrderItem[]
+  id            String        @id @default(uuid())
+  number        Int           @unique @default(autoincrement())
+  customerId    String?       @map("customer_id")
+  status        OrderStatus   @default(PENDING)
+  paymentMethod PaymentMethod @default(PIX)
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+  addressId     String?
+  address       Address?      @relation(fields: [addressId], references: [id])
+  customer      User?         @relation(fields: [customerId], references: [id])
+  items         OrderItem[]
 
   @@map("order")
 }
@@ -268,4 +269,11 @@ enum OrderStatus {
   CONFIRMED
   CANCELLED
   DELIVERED
+}
+
+enum PaymentMethod {
+  CREDIT
+  DEBIT
+  PIX
+  MONEY
 }

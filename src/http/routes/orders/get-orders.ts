@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma'
-import { OrderStatus, type Prisma } from '@prisma/client'
+import { OrderStatus, PaymentMethod, type Prisma } from '@prisma/client'
 import type { FastifyInstance } from 'fastify'
 import type { ZodTypeProvider } from 'fastify-type-provider-zod'
 import { z } from 'zod/v4'
@@ -23,6 +23,7 @@ const responseOrders = z.object({
       id: z.uuid(),
       number: z.number(),
       status: z.enum(OrderStatus),
+      paymentMethod: z.enum(PaymentMethod),
       total: z.number(),
       itemsCount: z.number(),
       createdAt: z.date(),
@@ -42,7 +43,13 @@ const responseOrders = z.object({
           id: z.uuid(),
           name: z.string(),
           slug: z.string(),
+          brandName: z.string().nullable(),
         }),
+        options: z.array(z.object({
+          id: z.uuid(),
+          name: z.string(),
+          optionId: z.uuid().nullable(),
+        })),
       })),
       address: z.object({
         number: z.string().nullable(),
@@ -119,6 +126,7 @@ export async function getOrders(app: FastifyInstance) {
             select: {
               id: true,
               number: true,
+              paymentMethod: true,
               status: true,
               createdAt: true,
               updatedAt: true,
@@ -127,11 +135,26 @@ export async function getOrders(app: FastifyInstance) {
                   id: true,
                   quantity: true,
                   unitPrice: true,
+                  variant: {
+                    select: {
+                      optionValues: {
+                        select: {
+                          optionValue: true,
+                        },
+                      },
+                    },
+                  },
                   product: {
                     select: {
-                      name: true,
                       id: true,
+                      name: true,
                       slug: true,
+                      brand: {
+                        select: {
+                          name: true,
+                        },
+                      },
+
                     },
                   },
                 },
@@ -162,13 +185,41 @@ export async function getOrders(app: FastifyInstance) {
           }),
           prisma.order.count({ where }),
         ])
-        const ordersWithTotal = orders.map(order => ({
-          ...order,
-          total: order.items.reduce((sum, item) => {
-            return sum + (Number(item.unitPrice) * item.quantity)
-          }, 0),
-          itemsCount: order.items.length,
-        }))
+        const ordersWithTotal = orders.map(order => {
+          const items = order.items.map(item => {
+            const options = (item.variant?.optionValues ?? [])
+              .map(({ optionValue }) => ({
+                id: optionValue.id,
+                name: optionValue.value,
+                optionId: optionValue.optionId ?? null,
+              }))
+
+            return {
+              id: item.id,
+              quantity: item.quantity,
+              unitPrice: item.unitPrice,
+              product: {
+                id: item.product.id,
+                name: item.product.name,
+                slug: item.product.slug,
+                brandName: item.product.brand?.name ?? null,
+              },
+              options,
+            }
+          })
+
+          const total = order.items.reduce((sum, it) => {
+            return sum + (Number(it.unitPrice) * it.quantity)
+          }, 0)
+
+          return {
+            ...order,
+            items,
+            total,
+            itemsCount: items.length,
+          }
+        })
+
         const totalPages = Math.ceil(total / limit)
         return reply.send({
           orders: ordersWithTotal,

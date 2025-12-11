@@ -1,6 +1,6 @@
 import { auth } from '@/http/middlewares/auth'
 import { prisma } from '@/lib/prisma'
-import { OrderStatus } from '@prisma/client'
+import { OrderStatus, PaymentMethod } from '@prisma/client'
 import type { FastifyInstance } from 'fastify'
 import type { ZodTypeProvider } from 'fastify-type-provider-zod'
 import z from 'zod/v4'
@@ -15,6 +15,7 @@ const orderItemSchema = z.object({
 
 const createOrderSchema = z.object({
   status: z.enum(OrderStatus).default('PENDING'),
+  paymentMethod: z.enum(PaymentMethod),
   addressId: z.uuid('Invalid address ID format').optional(),
   items: z.array(orderItemSchema).min(1, 'Order must have at least one item'),
 })
@@ -37,7 +38,7 @@ export async function createOrder(app: FastifyInstance) {
     },
     async (request, reply) => {
       const user = await request.getCurrentUserId()
-      const { status, addressId, items } = request.body
+      const { status, addressId, items, paymentMethod } = request.body
 
       if (addressId) {
         const address = await prisma.address.findUnique({
@@ -129,6 +130,7 @@ export async function createOrder(app: FastifyInstance) {
             data: {
               customerId: user.sub,
               status,
+              paymentMethod,
               addressId,
               items: {
                 create: items.map(item => ({
