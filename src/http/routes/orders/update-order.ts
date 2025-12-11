@@ -18,6 +18,7 @@ const orderItemSchema = z.object({
 
 const updateOrderSchema = z.object({
   trackingCode: z.string().optional(),
+  estimatedDelivery: z.date().optional(),
   customerId: z.uuid('Invalid customer ID format').optional(),
   paymentMethod: z.enum(PaymentMethod).optional(),
   status: z.enum(OrderStatus).optional(),
@@ -25,57 +26,57 @@ const updateOrderSchema = z.object({
   items: z.array(orderItemSchema).optional(),
 })
 
-const responseOrderSchema = z.object({
-  id: z.uuid(),
-  createdAt: z.date(),
-  updatedAt: z.date(),
-  total: z.number(),
-  itemsCount: z.number(),
-  paymentMethod: z.enum(PaymentMethod),
-  trackingCode: z.string().nullish(),
-  addressId: z.uuid().nullable(),
-  customer: z
-    .object({
-      id: z.uuid(),
-      email: z.email(),
-      name: z.string().nullable(),
-    }).nullable(),
-  items: z.array(
-    z.object({
-      id: z.uuid(),
-      productId: z.uuid(),
-      orderId: z.uuid(),
-      variantId: z.uuid().nullable(),
-      quantity: z.number(),
-      unitPrice: z.number(),
-      product: z.object({
-        id: z.uuid(),
-        name: z.string(),
-        slug: z.string(),
-        price: z.number(),
-      }),
-      variant: z
-        .object({
-          id: z.uuid(),
-          price: z.number().nullable(),
-          sku: z.string().nullable(),
-        }).nullable(),
-    }),
-  ),
-  address: z.object({
-    id: z.uuid(),
-    customerId: z.uuid(),
-    street: z.string(),
-    number: z.string().nullable(),
-    complement: z.string().nullable(),
-    district: z.string().nullable(),
-    city: z.string(),
-    state: z.string(),
-    postalCode: z.string(),
-    country: z.string(),
-    isDefault: z.boolean(),
-  }).nullable(),
-})
+// const responseOrderSchema = z.object({
+//   id: z.uuid(),
+//   createdAt: z.date(),
+//   updatedAt: z.date(),
+//   total: z.number(),
+//   itemsCount: z.number(),
+//   paymentMethod: z.enum(PaymentMethod),
+//   trackingCode: z.string().nullish(),
+//   addressId: z.uuid().nullable(),
+//   customer: z
+//     .object({
+//       id: z.uuid(),
+//       email: z.email(),
+//       name: z.string().nullable(),
+//     }).nullable(),
+//   items: z.array(
+//     z.object({
+//       id: z.uuid(),
+//       productId: z.uuid(),
+//       orderId: z.uuid(),
+//       variantId: z.uuid().nullable(),
+//       quantity: z.number(),
+//       unitPrice: z.number(),
+//       product: z.object({
+//         id: z.uuid(),
+//         name: z.string(),
+//         slug: z.string(),
+//         price: z.number(),
+//       }),
+//       variant: z
+//         .object({
+//           id: z.uuid(),
+//           price: z.number().nullable(),
+//           sku: z.string().nullable(),
+//         }).nullable(),
+//     }),
+//   ),
+//   address: z.object({
+//     id: z.uuid(),
+//     customerId: z.uuid(),
+//     street: z.string(),
+//     number: z.string().nullable(),
+//     complement: z.string().nullable(),
+//     district: z.string().nullable(),
+//     city: z.string(),
+//     state: z.string(),
+//     postalCode: z.string(),
+//     country: z.string(),
+//     isDefault: z.boolean(),
+//   }).nullable(),
+// })
 
 export async function updateOrder(app: FastifyInstance) {
   app.withTypeProvider<ZodTypeProvider>().put('/orders/:id',
@@ -89,7 +90,7 @@ export async function updateOrder(app: FastifyInstance) {
           { bearerAuth: [] },
         ],
         response: {
-          200: responseOrderSchema,
+          204: z.null(),
         },
       },
     },
@@ -97,6 +98,7 @@ export async function updateOrder(app: FastifyInstance) {
       const { id } = request.params
       const {
         customerId,
+        estimatedDelivery,
         status,
         addressId,
         paymentMethod,
@@ -168,11 +170,12 @@ export async function updateOrder(app: FastifyInstance) {
       }
 
       try {
-        const order = await prisma.order.update({
+        await prisma.order.update({
           where: { id },
           data: {
             ...(customerId !== undefined && { customerId }),
             ...(paymentMethod !== undefined && { paymentMethod }),
+            ...(estimatedDelivery !== undefined && { estimatedDelivery }),
             ...(trackingCode !== undefined && { trackingCode }),
             ...(status && { status }),
             ...(addressId !== undefined && { addressId }),
@@ -188,48 +191,20 @@ export async function updateOrder(app: FastifyInstance) {
               },
             }),
           },
-          include: {
-            customer: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-              },
-            },
-            address: true,
-            items: {
-              include: {
-                product: {
-                  select: {
-                    id: true,
-                    name: true,
-                    slug: true,
-                    price: true,
-                  },
-                },
-                variant: {
-                  select: {
-                    id: true,
-                    sku: true,
-                    price: true,
-                  },
-                },
-              },
-            },
-          },
+
         })
 
-        const total = order.items.reduce((sum, item) => {
-          return sum + (Number(item.unitPrice) * item.quantity)
-        }, 0)
+        // const total = order.items.reduce((sum, item) => {
+        //   return sum + (Number(item.unitPrice) * item.quantity)
+        // }, 0)
 
-        const orderWithTotal = {
-          ...order,
-          total,
-          itemsCount: order.items.length,
-        }
+        // const orderWithTotal = {
+        //   ...order,
+        //   total,
+        //   itemsCount: order.items.length,
+        // }
 
-        return reply.send(orderWithTotal)
+        return reply.status(204)
       } catch {
         throw new BadRequestError('Failed to update order.')
       }
