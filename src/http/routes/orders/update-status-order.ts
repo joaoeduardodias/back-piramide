@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma'
-import type { OrderStatus } from '@prisma/client'
+import { OrderStatus } from '@prisma/client'
 import type { FastifyInstance } from 'fastify'
 import type { ZodTypeProvider } from 'fastify-type-provider-zod'
 import z from 'zod/v4'
@@ -58,7 +58,7 @@ const responseOrderSchema = z.object({
 })
 
 const updateOrderStatusSchema = z.object({
-  status: z.enum(['PENDING', 'CONFIRMED', 'CANCELLED', 'DELIVERED']),
+  status: z.enum(OrderStatus),
 })
 
 export async function updateOrderStatus(app: FastifyInstance) {
