@@ -42,7 +42,7 @@ const responseOrder = z.object({
     updatedAt: z.date(),
     customer: z.object({
       id: z.uuid(),
-      email: z.string().email(),
+      email: z.email(),
       name: z.string().nullable(),
       phone: z.string().nullable(),
       cpf: z.string().nullable(),

@@ -31,7 +31,6 @@ const responseOrders = z.object({
       updatedAt: z.date(),
       total: z.number(),
       itemsCount: z.number(),
-      addressId: z.uuid().nullable(),
       customer: z.object({
         id: z.uuid(),
         email: z.email(),
@@ -40,27 +39,34 @@ const responseOrders = z.object({
       items: z.array(
         z.object({
           id: z.uuid(),
-          productId: z.uuid(),
-          orderId: z.uuid(),
-          variantId: z.uuid().nullable(),
           quantity: z.number(),
           unitPrice: z.number(),
+
           product: z.object({
             id: z.uuid(),
             name: z.string(),
             slug: z.string(),
-            price: z.number(),
+            brand: z.object({
+              name: z.string(),
+            }).nullable(),
           }),
+
           variant: z.object({
-            id: z.uuid(),
-            price: z.number().nullable(),
-            sku: z.string().nullable(),
+            optionValues: z.array(
+              z.object({
+                optionValue: z.object({
+                  id: z.uuid(),
+                  optionId: z.uuid(),
+                  value: z.string(),
+                  content: z.string().nullable(),
+                }),
+              }),
+            ),
           }).nullable(),
         }),
       ),
       address: z.object({
-        id: z.uuid(),
-        customerId: z.uuid(),
+        name: z.string(),
         street: z.string(),
         number: z.string().nullable(),
         complement: z.string().nullable(),
@@ -68,8 +74,6 @@ const responseOrders = z.object({
         city: z.string(),
         state: z.string(),
         postalCode: z.string(),
-        country: z.string(),
-        isDefault: z.boolean(),
       }).nullable(),
     }),
   ),
@@ -88,7 +92,7 @@ export async function getOrdersByCustomer(app: FastifyInstance) {
     {
       schema: {
         tags: ['Orders'],
-        summary: 'Get orders by customer customerId',
+        summary: 'Get orders by customer',
         params: orderCustomerIdParamsSchema,
         querystring: getOrdersQuerySchema,
         security: [
@@ -120,25 +124,63 @@ export async function getOrdersByCustomer(app: FastifyInstance) {
             where,
             skip,
             take: limit,
-            include: {
-              address: true,
+            select: {
+              id: true,
+              number: true,
+              paymentMethod: true,
+              trackingCode: true,
+              estimatedDelivery: true,
+              status: true,
+              createdAt: true,
+              updatedAt: true,
+              addressId: true,
               items: {
-                include: {
+                select: {
+                  id: true,
+                  quantity: true,
+                  unitPrice: true,
+                  variant: {
+                    select: {
+                      optionValues: {
+                        select: {
+                          optionValue: true,
+                        },
+                      },
+                    },
+                  },
                   product: {
                     select: {
                       id: true,
                       name: true,
                       slug: true,
-                      price: true,
+                      brand: {
+                        select: {
+                          name: true,
+                        },
+                      },
                     },
                   },
-                  variant: {
-                    select: {
-                      id: true,
-                      sku: true,
-                      price: true,
-                    },
-                  },
+                },
+              },
+              address: {
+                select: {
+                  city: true,
+                  district: true,
+                  name: true,
+                  number: true,
+                  street: true,
+                  complement: true,
+                  postalCode: true,
+                  state: true,
+                },
+              },
+              customer: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                  phone: true,
+                  cpf: true,
                 },
               },
             },
