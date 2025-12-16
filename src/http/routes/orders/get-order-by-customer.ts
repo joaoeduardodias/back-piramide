@@ -1,4 +1,5 @@
 /* eslint-disable @stylistic/indent */
+import { auth } from '@/http/middlewares/auth'
 import { prisma } from '@/lib/prisma'
 import { OrderStatus, type Prisma } from '@prisma/client'
 import type { FastifyInstance } from 'fastify'
@@ -14,19 +15,11 @@ const getOrdersQuerySchema = z.object({
   status: z.enum(OrderStatus).optional(),
 })
 
-const orderCustomerIdParamsSchema = z.object({
-  customerId: z.uuid('Invalid customer ID format'),
-})
-
 const responseOrders = z.object({
-  customer: z.object({
-    id: z.uuid(),
-    name: z.string().nullable(),
-    email: z.email(),
-  }),
   orders: z.array(
     z.object({
       id: z.uuid(),
+      status: z.enum(OrderStatus),
       createdAt: z.date(),
       updatedAt: z.date(),
       total: z.number(),
@@ -41,7 +34,11 @@ const responseOrders = z.object({
           id: z.uuid(),
           quantity: z.number(),
           unitPrice: z.number(),
-
+          options: z.array(z.object({
+            id: z.uuid(),
+            name: z.string(),
+            optionId: z.uuid().nullable(),
+          })),
           product: z.object({
             id: z.uuid(),
             name: z.string(),
@@ -88,12 +85,11 @@ const responseOrders = z.object({
 })
 
 export async function getOrdersByCustomer(app: FastifyInstance) {
-  app.withTypeProvider<ZodTypeProvider>().get('/orders/customer/:customerId',
+  app.withTypeProvider<ZodTypeProvider>().register(auth).get('/orders/customer',
     {
       schema: {
         tags: ['Orders'],
         summary: 'Get orders by customer',
-        params: orderCustomerIdParamsSchema,
         querystring: getOrdersQuerySchema,
         security: [
           { bearerAuth: [] },
@@ -104,7 +100,7 @@ export async function getOrdersByCustomer(app: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const { customerId } = request.params
+      const { sub: customerId } = await request.getCurrentUserId()
       const { page, limit, status } = request.query
       const skip = (page - 1) * limit
 
@@ -189,29 +185,82 @@ export async function getOrdersByCustomer(app: FastifyInstance) {
           prisma.order.count({ where }),
         ])
 
-        const ordersWithTotal = orders.map(order => ({
-          ...order,
-          total: order.items.reduce((sum, item) => {
-            return sum + (Number(item.unitPrice) * item.quantity)
-          }, 0),
-          itemsCount: order.items.length,
-          customer: customer
-            ? {
-              id: customer.id,
-              email: customer.email,
-              name: customer.name,
+        const ordersWithTotal = orders.map(order => {
+          const items = order.items.map(item => {
+            const unitPrice = Number(item.unitPrice)
+
+            return {
+              id: item.id,
+              quantity: item.quantity,
+              unitPrice,
+
+              options:
+                item.variant?.optionValues.map(ov => ({
+                  id: ov.optionValue.id,
+                  name: ov.optionValue.value,
+                  optionId: ov.optionValue.optionId,
+                })) ?? [],
+
+              product: {
+                id: item.product.id,
+                name: item.product.name,
+                slug: item.product.slug,
+                brand: item.product.brand
+                  ? { name: item.product.brand.name }
+                  : null,
+              },
+
+              // 🔴 ESSENCIAL para bater com o Zod
+              variant: item.variant
+                ? {
+                  optionValues: item.variant.optionValues.map(ov => ({
+                    optionValue: {
+                      id: ov.optionValue.id,
+                      optionId: ov.optionValue.optionId,
+                      value: ov.optionValue.value,
+                      content: ov.optionValue.content,
+                    },
+                  })),
+                }
+                : null,
             }
-            : null,
-        }))
+          })
+
+          return {
+            id: order.id,
+            createdAt: order.createdAt,
+            status: order.status,
+            updatedAt: order.updatedAt,
+            total: items.reduce(
+              (sum, item) => sum + item.unitPrice * item.quantity,
+              0,
+            ),
+            itemsCount: items.length,
+            customer: order.customer
+              ? {
+                id: order.customer.id,
+                email: order.customer.email,
+                name: order.customer.name,
+              }
+              : null,
+            items,
+            address: order.address
+              ? {
+                name: order.address.name,
+                street: order.address.street,
+                number: order.address.number,
+                complement: order.address.complement,
+                district: order.address.district,
+                city: order.address.city,
+                state: order.address.state,
+                postalCode: order.address.postalCode,
+              }
+              : null,
+          }
+        })
 
         const totalPages = Math.ceil(total / limit)
-
         return reply.send({
-          customer: {
-            id: customer.id,
-            name: customer.name,
-            email: customer.email,
-          },
           orders: ordersWithTotal,
           pagination: {
             page,
