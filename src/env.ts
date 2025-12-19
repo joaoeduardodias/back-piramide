@@ -18,6 +18,8 @@ const envSchema = z.object({
   CLOUDFARE_BUCKET_NAME: z.string(),
   CLOUDFARE_R2_TOKEN: z.string(),
 
+  MAILERSEND_API_KEY: z.string(),
+
 })
 
 export const env = envSchema.parse(process.env)
