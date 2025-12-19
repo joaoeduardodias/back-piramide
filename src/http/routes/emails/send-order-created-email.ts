@@ -115,7 +115,7 @@ export async function sendOrderCreatedEmail(app: FastifyInstance) {
             },
             product: order.items.map(item => ({
               name: item.product.name,
-              price: item.unitPrice,
+              price: formatReal(String(item.unitPrice)),
               quantity: item.quantity,
             })),
           },
