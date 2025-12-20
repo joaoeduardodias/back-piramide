@@ -8,7 +8,7 @@ interface SendEmailParams {
   }
   subject: string
   templateId: string
-  personalization: any
+  personalization?: any
 }
 
 export async function sendEmail({

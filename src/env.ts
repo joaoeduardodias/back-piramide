@@ -19,6 +19,7 @@ const envSchema = z.object({
   CLOUDFARE_R2_TOKEN: z.string(),
 
   MAILERSEND_API_KEY: z.string(),
+  OWNER_EMAIL: z.email(),
 
 })
 

@@ -1,3 +1,4 @@
+import { env } from '@/env'
 import { auth } from '@/http/middlewares/auth'
 import { prisma } from '@/lib/prisma'
 import { sendEmail } from '@/services/email/send-email'
@@ -124,12 +125,21 @@ export async function sendOrderCreatedEmail(app: FastifyInstance) {
 
       await sendEmail({
         to: {
-          email: order.customer.email,
-          name: order.customer.name,
+          email: env.OWNER_EMAIL,
+          name: 'Piramide Calçados',
         },
         subject: `Pedido #${order.number} confirmado`,
         templateId: 'zr6ke4n66wvlon12',
         personalization,
+      })
+
+      await sendEmail({
+        to: {
+          email: order.customer.email,
+          name: order.customer.name,
+        },
+        subject: 'Novo Pedido',
+        templateId: 'z86org8dd81lew13',
       })
 
       return reply.status(204).send()
