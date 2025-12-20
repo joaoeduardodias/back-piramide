@@ -73,6 +73,7 @@ import {
   updateVariantStock,
   uploadImages,
 } from './routes'
+import { couponRoutes } from './routes/coupons'
 import { emailRoutes } from './routes/emails'
 
 const app = fastify().withTypeProvider<ZodTypeProvider>()
@@ -196,6 +197,9 @@ app.register(deleteBrand)
 // email routes
 
 app.register(emailRoutes)
+
+// coupon routes
+app.register(couponRoutes)
 
 app.listen({ port: env.PORT, host: '0.0.0.0' }, () => {
   console.log(`🚀 HTTP server running on http://0.0.0.0:${env.PORT}`)
