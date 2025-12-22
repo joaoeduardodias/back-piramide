@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma'
-import { OrderStatus, PaymentMethod, type Prisma } from '@prisma/client'
+import type { Prisma } from '@/prisma/generated/client'
+import { OrderStatus, PaymentMethod } from '@/prisma/generated/enums'
 import type { FastifyInstance } from 'fastify'
 import type { ZodTypeProvider } from 'fastify-type-provider-zod'
 import { z } from 'zod/v4'
@@ -9,9 +10,9 @@ const getOrdersQuerySchema = z.object({
   page: z.string().transform(val =>
     parseInt(val)).pipe(z.number().int().min(1)).default(1),
   limit: z.string().transform(val =>
-    parseInt(val)).pipe(z.number().int().min(1).max(100)).default(10),
-  // status: z.enum(OrderStatus).optional(),
+    parseInt(val)).pipe(z.number().int().min(1)).default(10),
   status: z.string().optional(),
+  search: z.string().optional(),
   customerId: z.uuid().optional(),
   startDate: z.date().optional(),
   endDate: z.date().optional(),
@@ -97,6 +98,7 @@ export async function getOrders(app: FastifyInstance) {
         status,
         customerId,
         startDate,
+        search,
         endDate,
       } = request.query
       const skip = (page - 1) * limit
@@ -117,6 +119,18 @@ export async function getOrders(app: FastifyInstance) {
         if (endDate) {
           where.createdAt.lte = new Date(endDate)
         }
+      }
+
+      const normalizedSearch = search?.trim()
+
+      if (normalizedSearch) {
+        where.OR = [
+          ...(where.OR ?? []),
+          { customer: { name: { contains: search, mode: 'insensitive' } } },
+          { customer: { email: { contains: search, mode: 'insensitive' } } },
+          { customer: { cpf: { contains: search, mode: 'insensitive' } } },
+          { customer: { phone: { contains: search, mode: 'insensitive' } } },
+        ]
       }
 
       try {

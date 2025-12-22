@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma'
+import type { Prisma } from '@/prisma/generated/client'
+import { ProductStatus } from '@/prisma/generated/enums'
 import { getUserPermissions } from '@/utils/get-user-permissions'
-import { ProductStatus, type Prisma } from '@prisma/client'
 import type { FastifyInstance } from 'fastify'
 import type { ZodTypeProvider } from 'fastify-type-provider-zod'
 import { z } from 'zod/v4'

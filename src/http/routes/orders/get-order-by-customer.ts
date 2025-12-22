@@ -1,7 +1,8 @@
 /* eslint-disable @stylistic/indent */
 import { auth } from '@/http/middlewares/auth'
 import { prisma } from '@/lib/prisma'
-import { OrderStatus, type Prisma } from '@prisma/client'
+import type { Prisma } from '@/prisma/generated/client'
+import { OrderStatus } from '@/prisma/generated/enums'
 import type { FastifyInstance } from 'fastify'
 import type { ZodTypeProvider } from 'fastify-type-provider-zod'
 import { z } from 'zod/v4'

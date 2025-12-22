@@ -1,8 +1,8 @@
 /* eslint-disable @stylistic/max-len */
-/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import { prisma } from '@/lib/prisma'
-import type { Prisma } from '@prisma/client'
-import { ProductStatus } from '@prisma/client'
+import type { Prisma } from '@/prisma/generated/client'
+import { ProductStatus } from '@/prisma/generated/enums'
 import type { FastifyInstance } from 'fastify'
 import type { ZodTypeProvider } from 'fastify-type-provider-zod'
 import z from 'zod/v4'
@@ -106,24 +106,43 @@ export async function getAllProducts(app: FastifyInstance) {
       if (featured) {
         where.featured = Boolean(featured)
       }
-      let sortBySearch: any = {}
+      let orderBy: Prisma.ProductOrderByWithRelationInput[] = []
+
       if (sortBy) {
         switch (sortBy) {
           case 'price-asc':
-            sortBySearch = { price: 'asc' }
+            orderBy = [
+              { price: 'asc' },
+              { id: 'asc' },
+            ]
             break
+
           case 'price-desc':
-            sortBySearch = { price: 'desc' }
+            orderBy = [
+              { price: 'desc' },
+              { id: 'desc' },
+            ]
             break
+
           case 'created-desc':
-            sortBySearch = { createdAt: 'desc' }
+            orderBy = [
+              { createdAt: 'desc' },
+              { id: 'desc' },
+            ]
             break
+
           case 'relevance':
-            sortBySearch = { sales: 'desc' }
+            orderBy = [
+              { sales: 'desc' },
+              { id: 'desc' },
+            ]
             break
+
           default:
-            sortBySearch = { name: 'asc' }
-            break
+            orderBy = [
+              { createdAt: 'desc' },
+              { id: 'desc' },
+            ]
         }
       }
 
@@ -131,7 +150,7 @@ export async function getAllProducts(app: FastifyInstance) {
         where.categories = {
           some: {
             category: {
-              name: category,
+              slug: category,
             },
           },
         }
@@ -152,10 +171,14 @@ export async function getAllProducts(app: FastifyInstance) {
         }
       }
 
-      if (search) {
+      const normalizedSearch = search?.trim()
+
+      if (normalizedSearch) {
         where.OR = [
+          ...(where.OR ?? []),
           { name: { contains: search, mode: 'insensitive' } },
           { description: { contains: search, mode: 'insensitive' } },
+          { brand: { name: { contains: search, mode: 'insensitive' } } },
         ]
       }
 
@@ -212,7 +235,7 @@ export async function getAllProducts(app: FastifyInstance) {
               },
             },
 
-            orderBy: sortBySearch,
+            orderBy,
           }),
           prisma.product.count({ where }),
         ])

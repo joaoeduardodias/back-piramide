@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma'
-import { ProductStatus } from '@prisma/client'
+import { ProductStatus } from '@/prisma/generated/enums'
 import type { FastifyInstance } from 'fastify'
 import type { ZodTypeProvider } from 'fastify-type-provider-zod'
 import { z } from 'zod/v4'

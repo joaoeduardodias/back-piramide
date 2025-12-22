@@ -1,5 +1,5 @@
 import { defineAbilityFor, userSchema } from '@/auth/ability'
-import type { Role } from '@prisma/client'
+import type { Role } from '@/prisma/generated/enums'
 
 export function getUserPermissions(userId: string, role: Role) {
   const authUser = userSchema.parse({

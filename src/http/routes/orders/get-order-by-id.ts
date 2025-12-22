@@ -1,6 +1,6 @@
 /* eslint-disable @stylistic/indent */
 import { prisma } from '@/lib/prisma'
-import { OrderStatus, PaymentMethod } from '@prisma/client'
+import { OrderStatus, PaymentMethod } from '@/prisma/generated/enums'
 import type { FastifyInstance } from 'fastify'
 import type { ZodTypeProvider } from 'fastify-type-provider-zod'
 import { z } from 'zod/v4'

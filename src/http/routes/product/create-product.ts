@@ -1,7 +1,7 @@
 /* eslint-disable @stylistic/max-len */
 
 import { prisma } from '@/lib/prisma'
-import { ProductStatus } from '@prisma/client'
+import { ProductStatus } from '@/prisma/generated/enums'
 import type { FastifyInstance } from 'fastify'
 import type { ZodTypeProvider } from 'fastify-type-provider-zod'
 import z from 'zod/v4'
@@ -99,47 +99,45 @@ export async function createProduct(app: FastifyInstance) {
             })
           }
 
-          // 3. Criar ProductOption + ProductOptionValue (opções do produto)
-          if (body.options && body.options.length) {
-            for (const opt of body.options) {
-              const optDb = await tx.option.findUnique({ where: { name: opt.name } })
-              if (!optDb) {
-                throw new BadRequestError(`Opção "${opt.name}" informada não existe.`)
-              }
-              const prodOpt = await tx.productOption.upsert({
-                where: {
-                  productId_optionId: {
-                    productId: prod.id,
-                    optionId: optDb.id,
-                  },
-                },
-                create: { productId: prod.id, optionId: optDb.id },
-                update: {}, // nada a atualizar se já existe
-              })
+          // if (body.options && body.options.length) {
+          //   for (const opt of body.options) {
+          //     const optDb = await tx.option.findUnique({ where: { name: opt.name } })
+          //     if (!optDb) {
+          //       throw new BadRequestError(`Opção "${opt.name}" informada não existe.`)
+          //     }
+          //     const prodOpt = await tx.productOption.upsert({
+          //       where: {
+          //         productId_optionId: {
+          //           productId: prod.id,
+          //           optionId: optDb.id,
+          //         },
+          //       },
+          //       create: { productId: prod.id, optionId: optDb.id },
+          //       update: {}, // nada a atualizar se já existe
+          //     })
 
-              for (const v of opt.values) {
-                const ov = await tx.optionValue.findUnique({ where: { id: v.id } })
-                if (!ov) {
-                  throw new BadRequestError(`OptionValue id "${v.id}" inválido para a opção "${opt.name}".`)
-                }
-                await tx.productOptionValue.upsert({
-                  where: {
-                    productOptionId_optionValueId: {
-                      productOptionId: prodOpt.id,
-                      optionValueId: v.id,
-                    },
-                  },
-                  create: {
-                    productOptionId: prodOpt.id,
-                    optionValueId: v.id,
-                  },
-                  update: {},
-                })
-              }
-            }
-          }
+          //     for (const v of opt.values) {
+          //       const ov = await tx.optionValue.findUnique({ where: { id: v.id } })
+          //       if (!ov) {
+          //         throw new BadRequestError(`OptionValue id "${v.id}" inválido para a opção "${opt.name}".`)
+          //       }
+          //       await tx.productOptionValue.upsert({
+          //         where: {
+          //           productOptionId_optionValueId: {
+          //             productOptionId: prodOpt.id,
+          //             optionValueId: v.id,
+          //           },
+          //         },
+          //         create: {
+          //           productOptionId: prodOpt.id,
+          //           optionValueId: v.id,
+          //         },
+          //         update: {},
+          //       })
+          //     }
+          //   }
+          // }
 
-          // 4. Criar imagens se houver
           if (body.images && body.images.length) {
             await tx.productImage.createMany({
               data: body.images.map((f, i) => ({
@@ -152,13 +150,32 @@ export async function createProduct(app: FastifyInstance) {
             })
           }
 
-          // 5. Criar variantes + associar optionValue → variant
-          if (body.variants && body.variants.length) {
-            for (const v of body.variants) {
-              const existingVar = await tx.productVariant.findUnique({ where: { sku: v.sku } })
-              if (existingVar) {
-                throw new BadRequestError(`Variante com SKU "${v.sku}" já existe.`)
+          if (body.options) {
+            for (const opt of body.options) {
+              const optDb = await tx.option.findUnique({ where: { name: opt.name } })
+              if (!optDb) throw new BadRequestError(`Opção "${opt.name}" inválida.`)
+
+              const prodOpt = await tx.productOption.upsert({
+                where: { productId_optionId: { productId: prod.id, optionId: optDb.id } },
+                create: { productId: prod.id, optionId: optDb.id },
+                update: {},
+              })
+
+              for (const v of opt.values) {
+                const ov = await tx.optionValue.findUnique({ where: { id: v.id } })
+                if (!ov) throw new BadRequestError(`OptionValue id "${v.id}" inválido.`)
+
+                await tx.productOptionValue.upsert({
+                  where: { productOptionId_optionValueId: { productOptionId: prodOpt.id, optionValueId: ov.id } },
+                  create: { productOptionId: prodOpt.id, optionValueId: ov.id },
+                  update: {},
+                })
               }
+            }
+          }
+
+          if (body.variants) {
+            for (const v of body.variants) {
               const newVar = await tx.productVariant.create({
                 data: {
                   productId: prod.id,
@@ -168,18 +185,10 @@ export async function createProduct(app: FastifyInstance) {
                   stock: v.stock ?? 0,
                 },
               })
-
-              if (v.optionValueIds && v.optionValueIds.length) {
+              if (v.optionValueIds) {
                 for (const ovId of v.optionValueIds) {
-                  const ov = await tx.optionValue.findUnique({ where: { id: ovId } })
-                  if (!ov) {
-                    throw new BadRequestError(`OptionValue id "${ovId}" inválido em variante SKU="${v.sku}".`)
-                  }
                   await tx.variantOptionValue.create({
-                    data: {
-                      variantId: newVar.id,
-                      optionValueId: ovId,
-                    },
+                    data: { variantId: newVar.id, optionValueId: ovId },
                   })
                 }
               }

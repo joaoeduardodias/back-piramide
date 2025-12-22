@@ -1,4 +1,4 @@
-import type { Role } from '@prisma/client'
+import type { Role } from '@/prisma/generated/enums'
 import type { FastifyInstance } from 'fastify'
 import fastifyPlugin from 'fastify-plugin'
 import { UnauthorizedError } from '../routes/_errors/unauthorized-error'

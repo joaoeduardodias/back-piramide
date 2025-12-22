@@ -4,7 +4,21 @@ import type { ZodTypeProvider } from 'fastify-type-provider-zod'
 import { z } from 'zod/v4'
 import { BadRequestError } from '../_errors/bad-request-error'
 
-const getCategoriesSchema = z.object({
+const getCategoriesQuerySchema = z.object({
+  page: z
+    .string()
+    .transform(val => parseInt(val))
+    .pipe(z.number().int().min(1))
+    .default(1),
+
+  limit: z
+    .string()
+    .transform(val => parseInt(val))
+    .pipe(z.number().int().min(1))
+    .default(10),
+})
+
+const responseCategoriesSchema = z.object({
   categories: z.array(z.object({
     id: z.uuid(),
     name: z.string(),
@@ -16,6 +30,14 @@ const getCategoriesSchema = z.object({
     }),
     ),
   })),
+  pagination: z.object({
+    page: z.number().int(),
+    limit: z.number().int(),
+    total: z.number().int(),
+    totalPages: z.number().int(),
+    hasNext: z.boolean(),
+    hasPrev: z.boolean(),
+  }),
 })
 
 export async function getCategories(app: FastifyInstance) {
@@ -24,53 +46,73 @@ export async function getCategories(app: FastifyInstance) {
       schema: {
         tags: ['Category'],
         summary: 'Get all categories',
+        querystring: getCategoriesQuerySchema,
         response: {
-          200: getCategoriesSchema,
+          200: responseCategoriesSchema,
         },
       },
     },
-    async (_, reply) => {
+    async (request, reply) => {
+      const { page, limit } = request.query
+      const skip = (page - 1) * limit
       try {
-        const categories = await prisma.category.findMany({
-          select: {
-            id: true,
-            name: true,
-            slug: true,
-            products: {
-              select: {
-                product: {
-                  select: {
-                    id: true,
-                    name: true,
-                    images: {
-                      select: {
-                        url: true,
+        const [categories, total] = await Promise.all([
+          prisma.category.findMany({
+            skip,
+            take: limit,
+            orderBy: {
+              name: 'asc',
+            },
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+              products: {
+                select: {
+                  product: {
+                    select: {
+                      id: true,
+                      name: true,
+                      images: {
+                        select: {
+                          url: true,
+                        },
+                        take: 1,
                       },
-                      take: 1,
                     },
                   },
                 },
               },
             },
+          }),
+
+          prisma.category.count(),
+        ])
+
+        const formattedCategories = categories.map(category => ({
+          id: category.id,
+          name: category.name,
+          slug: category.slug,
+          products: category.products.map(p => ({
+            id: p.product.id,
+            name: p.product.name,
+            image: p.product.images[0]?.url,
+          })),
+        }))
+
+        const totalPages = Math.ceil(total / limit)
+
+        return reply.send({
+          categories: formattedCategories,
+          pagination: {
+            page,
+            limit,
+            total,
+            totalPages,
+            hasNext: page < totalPages,
+            hasPrev: page > 1,
           },
         })
-
-        const formattedCategories = categories.map(category => {
-          return {
-            id: category.id,
-            name: category.name,
-            slug: category.slug,
-            products: category.products.map(p => {
-              return {
-                id: p.product.id,
-                name: p.product.name,
-                image: p.product.images[0]?.url,
-              }
-            }),
-          }
-        })
-
-        return reply.send({ categories: formattedCategories })
       } catch (err) {
         console.log(err)
         throw new BadRequestError('Falha ao Listar categorias.')

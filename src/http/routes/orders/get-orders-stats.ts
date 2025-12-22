@@ -1,7 +1,8 @@
 /* eslint-disable @stylistic/max-len */
 /* eslint-disable @stylistic/indent */
 import { prisma } from '@/lib/prisma'
-import { OrderStatus, type Prisma } from '@prisma/client'
+import type { Prisma } from '@/prisma/generated/client'
+import { OrderStatus } from '@/prisma/generated/enums'
 import dayjs from 'dayjs'
 import type { FastifyInstance } from 'fastify'
 import type { ZodTypeProvider } from 'fastify-type-provider-zod'
