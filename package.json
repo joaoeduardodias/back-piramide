@@ -2,6 +2,7 @@
   "name": "api-piramide",
   "version": "1.0.0",
   "main": "index.js",
+
   "scripts": {
     "lint": "eslint . --fix",
     "dev": "NODE_OPTIONS=--no-warnings=DEP0040 dotenv -e .env -- tsx watch ./src/http/server.ts",
