@@ -4,6 +4,7 @@ import { deleteCoupon } from './delete-coupon'
 import { getCouponById } from './get-coupon-by-id'
 import { getCoupons } from './get-coupons'
 import { updateCoupon } from './update-coupon'
+import { updateStatusCoupon } from './update-status-coupon'
 import { validateCoupon } from './validate-coupon'
 
 export async function couponRoutes(app: FastifyInstance) {
@@ -13,4 +14,5 @@ export async function couponRoutes(app: FastifyInstance) {
   await getCoupons(app)
   await getCouponById(app)
   await validateCoupon(app)
+  await updateStatusCoupon(app)
 }

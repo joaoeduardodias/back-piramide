@@ -4,11 +4,26 @@ import type { FastifyInstance } from 'fastify'
 import type { ZodTypeProvider } from 'fastify-type-provider-zod'
 import { z } from 'zod/v4'
 
+const getCouponsQuerySchema = z.object({
+  page: z
+    .string()
+    .transform(val => parseInt(val))
+    .pipe(z.number().int().min(1))
+    .default(1),
+
+  limit: z
+    .string()
+    .transform(val => parseInt(val))
+    .pipe(z.number().int().min(1))
+    .default(10),
+})
+
 export async function getCoupons(app: FastifyInstance) {
   app.withTypeProvider<ZodTypeProvider>().register(auth).get('/coupons', {
     schema: {
       tags: ['Coupon'],
       summary: 'List coupons',
+      querystring: getCouponsQuerySchema,
       security: [{ bearerAuth: [] }],
       response: {
         200: z.object({
@@ -21,16 +36,59 @@ export async function getCoupons(app: FastifyInstance) {
             usedCount: z.number(),
             maxUses: z.number().nullable(),
             expiresAt: z.date().nullable(),
-            createdAt: z.date(),
+            minOrderValue: z.number().nullable(),
+
           })),
+          pagination: z.object({
+            page: z.number().int(),
+            limit: z.number().int(),
+            total: z.number().int(),
+            totalPages: z.number().int(),
+            hasNext: z.boolean(),
+            hasPrev: z.boolean(),
+          }),
         }),
       },
     },
-  }, async (_, reply) => {
-    const coupons = await prisma.coupon.findMany({
-      orderBy: { createdAt: 'desc' },
-    })
+  }, async (request, reply) => {
+    const { page, limit } = request.query
+    const skip = (page - 1) * limit
 
-    return reply.send({ coupons })
+    const [coupons, total] = await Promise.all([
+      await prisma.coupon.findMany({
+        skip,
+        take: limit,
+        orderBy: {
+          createdAt: 'asc',
+        },
+        select: {
+          id: true,
+          code: true,
+          type: true,
+          value: true,
+          isActive: true,
+          usedCount: true,
+          maxUses: true,
+          expiresAt: true,
+          minOrderValue: true,
+        },
+      }),
+
+      prisma.coupon.count(),
+    ])
+    const totalPages = Math.ceil(total / limit)
+
+    return reply.send({
+      coupons,
+
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages,
+        hasNext: page < totalPages,
+        hasPrev: page > 1,
+      },
+    })
   })
 }

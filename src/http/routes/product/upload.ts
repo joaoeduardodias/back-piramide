@@ -17,7 +17,6 @@ const createPresignedSchema = z.object({
         .regex(/^image\/(jpeg|png|webp|avif)$/,
           'File type must be jpeg, png or webp of avif',
         ),
-      sortOrder: z.number().optional(),
     }),
   ),
 })
