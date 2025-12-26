@@ -274,6 +274,20 @@ model CouponUsage {
   coupon Coupon @relation(fields: [couponId], references: [id])
 }
 
+model HeroSlide {
+  id          String   @id @default(uuid())
+  title       String
+  subtitle    String
+  description String
+  image       String
+  cta         String
+  link        String
+  order       Int
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
 enum CouponType {
   PERCENT
   FIXED

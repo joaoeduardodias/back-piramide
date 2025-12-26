@@ -12,7 +12,7 @@ import { BadRequestError } from '../_errors/bad-request-error'
 
 const orderItemSchema = z.object({
   productId: z.uuid(),
-  variantId: z.uuid().optional(),
+  variantId: z.uuid('Variações são obrigatórias para este produto'),
   quantity: z.number().int().min(1),
   unitPrice: z.number().positive(),
 })
@@ -145,6 +145,24 @@ export async function createOrder(app: FastifyInstance) {
 
         try {
           const order = await prisma.$transaction(async tx => {
+            const variantIds = items
+              .map(item => item.variantId)
+              .filter((id): id is string => typeof id === 'string')
+
+            if (variantIds.length > 0) {
+              const existingVariants = await tx.productVariant.findMany({
+                where: {
+                  id: { in: variantIds },
+                },
+                select: { id: true },
+              })
+
+              if (existingVariants.length !== variantIds.length) {
+                throw new BadRequestError(
+                  'Uma ou mais variantes são inválidas ou não existem',
+                )
+              }
+            }
             const createdOrder = await tx.order.create({
               data: {
                 customerId: user.sub,
@@ -211,7 +229,10 @@ export async function createOrder(app: FastifyInstance) {
           return reply.status(201).send({
             orderId: order.id,
           })
-        } catch {
+        } catch (err) {
+          if (err instanceof BadRequestError) {
+            throw err
+          }
           throw new BadRequestError('Falha ao criar pedido.')
         }
       },

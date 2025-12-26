@@ -2,6 +2,7 @@
 export { authenticateWithGoogle } from './auth/authenticate-with-google'
 export { authenticateWithPassword } from './auth/authenticate-with-password'
 export { createUser } from './auth/create-user'
+export { getCustomers } from './auth/get-customer'
 export { getProfile } from './auth/get-profile'
 export { getUsers } from './auth/get-users'
 export { requestPasswordRecover } from './auth/request-password-recover'

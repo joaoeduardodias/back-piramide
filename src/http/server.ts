@@ -43,6 +43,7 @@ import {
   getCart,
   getCategories,
   getCategoryById,
+  getCustomers,
   getLowStockProducts,
   getOrderById,
   getOrders,
@@ -75,6 +76,7 @@ import {
 } from './routes'
 import { couponRoutes } from './routes/coupons'
 import { emailRoutes } from './routes/emails'
+import { heroSlidesRoutes } from './routes/hero-slides'
 
 const app = fastify().withTypeProvider<ZodTypeProvider>()
 
@@ -122,6 +124,7 @@ app.register(getUsers)
 app.register(requestPasswordRecover)
 app.register(resetPassword)
 app.register(updateUser)
+app.register(getCustomers)
 
 // product routes
 app.register(createProduct)
@@ -200,6 +203,10 @@ app.register(emailRoutes)
 
 // coupon routes
 app.register(couponRoutes)
+
+// hero slides routes
+
+app.register(heroSlidesRoutes)
 
 app.listen({ port: env.PORT, host: '0.0.0.0' }, () => {
   console.log(`🚀 HTTP server running on http://0.0.0.0:${env.PORT}`)
