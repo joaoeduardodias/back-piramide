@@ -43,12 +43,12 @@ export async function validateCoupon(app: FastifyInstance) {
       }
 
       if (coupon.maxUses && coupon.usedCount >= coupon.maxUses) {
-        throw new BadRequestError('Cupom esgotado.')
+        throw new BadRequestError('Máximo de usos do cupom atingido.')
       }
 
       const alreadyUsed = coupon.usages.some(u => u.userId === userId)
       if (alreadyUsed) {
-        throw new BadRequestError('Cupom já utilizado.')
+        throw new BadRequestError('Você já usou este cupom.')
       }
 
       if (coupon.minOrderValue && orderTotal < Number(coupon.minOrderValue)) {

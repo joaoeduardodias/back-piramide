@@ -2053,6 +2053,10 @@ export const OrderScalarFieldEnum = {
   paymentMethod: 'paymentMethod',
   trackingCode: 'trackingCode',
   estimatedDelivery: 'estimatedDelivery',
+  subtotal: 'subtotal',
+  discount: 'discount',
+  total: 'total',
+  couponId: 'couponId',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt',
   addressId: 'addressId'
