@@ -21,7 +21,7 @@ const getSlideParams = z.object({
 
 export async function updateHeroSlide(app: FastifyInstance) {
   app.withTypeProvider<ZodTypeProvider>().register(auth)
-    .put('/hero-slides/:id',
+    .put('/hero-slide/:id',
       {
         schema: {
           tags: ['Hero'],
