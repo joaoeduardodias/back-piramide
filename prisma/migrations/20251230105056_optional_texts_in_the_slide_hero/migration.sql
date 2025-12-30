@@ -1,0 +1,4 @@
+-- AlterTable
+ALTER TABLE "HeroSlide" ALTER COLUMN "title" DROP NOT NULL,
+ALTER COLUMN "subtitle" DROP NOT NULL,
+ALTER COLUMN "description" DROP NOT NULL;

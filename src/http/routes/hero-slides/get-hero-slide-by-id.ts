@@ -25,9 +25,9 @@ export async function getHeroSlidesById(app: FastifyInstance) {
             slide:
               z.object({
                 id: z.uuid(),
-                title: z.string(),
-                subtitle: z.string(),
-                description: z.string(),
+                title: z.string().nullish(),
+                subtitle: z.string().nullish(),
+                description: z.string().nullish(),
                 image: z.string(),
                 cta: z.string(),
                 link: z.string(),

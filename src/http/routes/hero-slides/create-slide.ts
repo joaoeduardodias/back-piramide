@@ -6,9 +6,9 @@ import { auth } from '../../middlewares/auth'
 import { BadRequestError } from '../_errors/bad-request-error'
 
 const createHeroSlideSchema = z.object({
-  title: z.string().min(1),
-  subtitle: z.string().min(1),
-  description: z.string().min(1),
+  title: z.string().min(1).nullish(),
+  subtitle: z.string().min(1).nullish(),
+  description: z.string().min(1).nullish(),
   image: z.string().min(1),
   cta: z.string().min(1),
   link: z.string().min(1),

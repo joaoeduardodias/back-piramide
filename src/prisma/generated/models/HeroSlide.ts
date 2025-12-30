@@ -217,9 +217,9 @@ export type HeroSlideGroupByArgs<ExtArgs extends runtime.Types.Extensions.Intern
 
 export type HeroSlideGroupByOutputType = {
   id: string
-  title: string
-  subtitle: string
-  description: string
+  title: string | null
+  subtitle: string | null
+  description: string | null
   image: string
   cta: string
   link: string
@@ -254,9 +254,9 @@ export type HeroSlideWhereInput = {
   OR?: Prisma.HeroSlideWhereInput[]
   NOT?: Prisma.HeroSlideWhereInput | Prisma.HeroSlideWhereInput[]
   id?: Prisma.StringFilter<"HeroSlide"> | string
-  title?: Prisma.StringFilter<"HeroSlide"> | string
-  subtitle?: Prisma.StringFilter<"HeroSlide"> | string
-  description?: Prisma.StringFilter<"HeroSlide"> | string
+  title?: Prisma.StringNullableFilter<"HeroSlide"> | string | null
+  subtitle?: Prisma.StringNullableFilter<"HeroSlide"> | string | null
+  description?: Prisma.StringNullableFilter<"HeroSlide"> | string | null
   image?: Prisma.StringFilter<"HeroSlide"> | string
   cta?: Prisma.StringFilter<"HeroSlide"> | string
   link?: Prisma.StringFilter<"HeroSlide"> | string
@@ -268,9 +268,9 @@ export type HeroSlideWhereInput = {
 
 export type HeroSlideOrderByWithRelationInput = {
   id?: Prisma.SortOrder
-  title?: Prisma.SortOrder
-  subtitle?: Prisma.SortOrder
-  description?: Prisma.SortOrder
+  title?: Prisma.SortOrderInput | Prisma.SortOrder
+  subtitle?: Prisma.SortOrderInput | Prisma.SortOrder
+  description?: Prisma.SortOrderInput | Prisma.SortOrder
   image?: Prisma.SortOrder
   cta?: Prisma.SortOrder
   link?: Prisma.SortOrder
@@ -285,9 +285,9 @@ export type HeroSlideWhereUniqueInput = Prisma.AtLeast<{
   AND?: Prisma.HeroSlideWhereInput | Prisma.HeroSlideWhereInput[]
   OR?: Prisma.HeroSlideWhereInput[]
   NOT?: Prisma.HeroSlideWhereInput | Prisma.HeroSlideWhereInput[]
-  title?: Prisma.StringFilter<"HeroSlide"> | string
-  subtitle?: Prisma.StringFilter<"HeroSlide"> | string
-  description?: Prisma.StringFilter<"HeroSlide"> | string
+  title?: Prisma.StringNullableFilter<"HeroSlide"> | string | null
+  subtitle?: Prisma.StringNullableFilter<"HeroSlide"> | string | null
+  description?: Prisma.StringNullableFilter<"HeroSlide"> | string | null
   image?: Prisma.StringFilter<"HeroSlide"> | string
   cta?: Prisma.StringFilter<"HeroSlide"> | string
   link?: Prisma.StringFilter<"HeroSlide"> | string
@@ -299,9 +299,9 @@ export type HeroSlideWhereUniqueInput = Prisma.AtLeast<{
 
 export type HeroSlideOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
-  title?: Prisma.SortOrder
-  subtitle?: Prisma.SortOrder
-  description?: Prisma.SortOrder
+  title?: Prisma.SortOrderInput | Prisma.SortOrder
+  subtitle?: Prisma.SortOrderInput | Prisma.SortOrder
+  description?: Prisma.SortOrderInput | Prisma.SortOrder
   image?: Prisma.SortOrder
   cta?: Prisma.SortOrder
   link?: Prisma.SortOrder
@@ -321,9 +321,9 @@ export type HeroSlideScalarWhereWithAggregatesInput = {
   OR?: Prisma.HeroSlideScalarWhereWithAggregatesInput[]
   NOT?: Prisma.HeroSlideScalarWhereWithAggregatesInput | Prisma.HeroSlideScalarWhereWithAggregatesInput[]
   id?: Prisma.StringWithAggregatesFilter<"HeroSlide"> | string
-  title?: Prisma.StringWithAggregatesFilter<"HeroSlide"> | string
-  subtitle?: Prisma.StringWithAggregatesFilter<"HeroSlide"> | string
-  description?: Prisma.StringWithAggregatesFilter<"HeroSlide"> | string
+  title?: Prisma.StringNullableWithAggregatesFilter<"HeroSlide"> | string | null
+  subtitle?: Prisma.StringNullableWithAggregatesFilter<"HeroSlide"> | string | null
+  description?: Prisma.StringNullableWithAggregatesFilter<"HeroSlide"> | string | null
   image?: Prisma.StringWithAggregatesFilter<"HeroSlide"> | string
   cta?: Prisma.StringWithAggregatesFilter<"HeroSlide"> | string
   link?: Prisma.StringWithAggregatesFilter<"HeroSlide"> | string
@@ -335,9 +335,9 @@ export type HeroSlideScalarWhereWithAggregatesInput = {
 
 export type HeroSlideCreateInput = {
   id?: string
-  title: string
-  subtitle: string
-  description: string
+  title?: string | null
+  subtitle?: string | null
+  description?: string | null
   image: string
   cta: string
   link: string
@@ -349,9 +349,9 @@ export type HeroSlideCreateInput = {
 
 export type HeroSlideUncheckedCreateInput = {
   id?: string
-  title: string
-  subtitle: string
-  description: string
+  title?: string | null
+  subtitle?: string | null
+  description?: string | null
   image: string
   cta: string
   link: string
@@ -363,9 +363,9 @@ export type HeroSlideUncheckedCreateInput = {
 
 export type HeroSlideUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  title?: Prisma.StringFieldUpdateOperationsInput | string
-  subtitle?: Prisma.StringFieldUpdateOperationsInput | string
-  description?: Prisma.StringFieldUpdateOperationsInput | string
+  title?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  subtitle?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   image?: Prisma.StringFieldUpdateOperationsInput | string
   cta?: Prisma.StringFieldUpdateOperationsInput | string
   link?: Prisma.StringFieldUpdateOperationsInput | string
@@ -377,9 +377,9 @@ export type HeroSlideUpdateInput = {
 
 export type HeroSlideUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  title?: Prisma.StringFieldUpdateOperationsInput | string
-  subtitle?: Prisma.StringFieldUpdateOperationsInput | string
-  description?: Prisma.StringFieldUpdateOperationsInput | string
+  title?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  subtitle?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   image?: Prisma.StringFieldUpdateOperationsInput | string
   cta?: Prisma.StringFieldUpdateOperationsInput | string
   link?: Prisma.StringFieldUpdateOperationsInput | string
@@ -391,9 +391,9 @@ export type HeroSlideUncheckedUpdateInput = {
 
 export type HeroSlideCreateManyInput = {
   id?: string
-  title: string
-  subtitle: string
-  description: string
+  title?: string | null
+  subtitle?: string | null
+  description?: string | null
   image: string
   cta: string
   link: string
@@ -405,9 +405,9 @@ export type HeroSlideCreateManyInput = {
 
 export type HeroSlideUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  title?: Prisma.StringFieldUpdateOperationsInput | string
-  subtitle?: Prisma.StringFieldUpdateOperationsInput | string
-  description?: Prisma.StringFieldUpdateOperationsInput | string
+  title?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  subtitle?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   image?: Prisma.StringFieldUpdateOperationsInput | string
   cta?: Prisma.StringFieldUpdateOperationsInput | string
   link?: Prisma.StringFieldUpdateOperationsInput | string
@@ -419,9 +419,9 @@ export type HeroSlideUpdateManyMutationInput = {
 
 export type HeroSlideUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  title?: Prisma.StringFieldUpdateOperationsInput | string
-  subtitle?: Prisma.StringFieldUpdateOperationsInput | string
-  description?: Prisma.StringFieldUpdateOperationsInput | string
+  title?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  subtitle?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   image?: Prisma.StringFieldUpdateOperationsInput | string
   cta?: Prisma.StringFieldUpdateOperationsInput | string
   link?: Prisma.StringFieldUpdateOperationsInput | string
@@ -546,9 +546,9 @@ export type $HeroSlidePayload<ExtArgs extends runtime.Types.Extensions.InternalA
   objects: {}
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
-    title: string
-    subtitle: string
-    description: string
+    title: string | null
+    subtitle: string | null
+    description: string | null
     image: string
     cta: string
     link: string

@@ -276,9 +276,9 @@ model CouponUsage {
 
 model HeroSlide {
   id          String   @id @default(uuid())
-  title       String
-  subtitle    String
-  description String
+  title       String?
+  subtitle    String?
+  description String?
   image       String
   cta         String
   link        String
