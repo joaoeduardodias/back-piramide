@@ -175,6 +175,22 @@ export async function createProduct(app: FastifyInstance) {
           }
 
           if (body.variants) {
+            const skus = body.variants.map(v => v.sku)
+
+            const existingVariants = await tx.productVariant.findMany({
+              where: {
+                sku: { in: skus },
+              },
+              select: { sku: true },
+            })
+
+            if (existingVariants.length) {
+              throw new BadRequestError(
+                `Já existem variants cadastradas com os seguintes SKU(s): ${existingVariants
+                  .map(v => v.sku)
+                  .join(', ')}`,
+              )
+            }
             for (const v of body.variants) {
               const newVar = await tx.productVariant.create({
                 data: {
