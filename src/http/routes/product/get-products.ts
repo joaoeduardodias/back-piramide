@@ -11,7 +11,7 @@ const getProductsQuerySchema = z.object({
   page: z.string().transform(val =>
     parseInt(val)).pipe(z.number().int().min(1)).default(1),
   limit: z.string().transform(val =>
-    parseInt(val)).pipe(z.number().int().min(1).max(100)).default(50),
+    parseInt(val)).pipe(z.number().int().min(1)).default(50),
   status: z.enum(ProductStatus).optional(),
   featured: z.string().optional(),
   sortBy: z.enum([
