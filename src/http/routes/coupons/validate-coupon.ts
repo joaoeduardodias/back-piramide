@@ -8,6 +8,7 @@ import { BadRequestError } from '../_errors/bad-request-error'
 const validateCouponSchema = z.object({
   code: z.string(),
   orderTotal: z.number().positive(),
+  productIds: z.array(z.string().uuid()).min(1),
 })
 
 export async function validateCoupon(app: FastifyInstance) {
@@ -26,12 +27,12 @@ export async function validateCoupon(app: FastifyInstance) {
         },
       },
     }, async (request, reply) => {
-      const { code, orderTotal } = request.body
+      const { code, orderTotal, productIds } = request.body
       const { sub: userId } = await request.getCurrentUserId()
 
       const coupon = await prisma.coupon.findUnique({
         where: { code: code.toUpperCase() },
-        include: { usages: true },
+        include: { usages: true, products: true },
       })
 
       if (!coupon || !coupon.isActive) {
@@ -53,6 +54,21 @@ export async function validateCoupon(app: FastifyInstance) {
 
       if (coupon.minOrderValue && orderTotal < Number(coupon.minOrderValue)) {
         throw new BadRequestError('Valor mínimo não atingido.')
+      }
+      if (coupon.scope === 'PRODUCTS') {
+        const allowedProductIds = new Set(
+          coupon.products.map(p => p.productId),
+        )
+
+        const hasValidProduct = productIds.some(id =>
+          allowedProductIds.has(id),
+        )
+
+        if (!hasValidProduct) {
+          throw new BadRequestError(
+            'Este cupom não é válido para os produtos selecionados.',
+          )
+        }
       }
 
       let discount = 0

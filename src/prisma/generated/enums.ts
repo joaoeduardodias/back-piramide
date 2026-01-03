@@ -9,6 +9,14 @@
 * 🟢 You can import this file directly.
 */
 
+export const CouponScope = {
+  ALL_PRODUCTS: 'ALL_PRODUCTS',
+  PRODUCTS: 'PRODUCTS'
+} as const
+
+export type CouponScope = (typeof CouponScope)[keyof typeof CouponScope]
+
+
 export const CouponType = {
   PERCENT: 'PERCENT',
   FIXED: 'FIXED'

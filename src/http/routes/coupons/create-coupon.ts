@@ -1,3 +1,4 @@
+/* eslint-disable @stylistic/indent */
 import { prisma } from '@/lib/prisma'
 import type { FastifyInstance } from 'fastify'
 import type { ZodTypeProvider } from 'fastify-type-provider-zod'
@@ -7,11 +8,21 @@ import { BadRequestError } from '../_errors/bad-request-error'
 const createCouponSchema = z.object({
   code: z.string().min(1).transform(v => v.toUpperCase()),
   type: z.enum(['PERCENT', 'FIXED']),
+  scope: z.enum(['ALL_PRODUCTS', 'PRODUCTS']),
   isActive: z.boolean().default(true),
   value: z.number().positive(),
   minOrderValue: z.number().positive().optional(),
   maxUses: z.number().int().positive().optional(),
   expiresAt: z.coerce.date().optional(),
+  productIds: z.array(z.uuid()).optional(),
+}).refine(data => {
+  if (data.scope === 'PRODUCTS') {
+    return data.productIds && data.productIds.length > 0
+  }
+  return true
+}, {
+  message: 'Selecione ao menos um produto para este cupom',
+  path: ['productIds'],
 })
 
 export async function createCoupon(app: FastifyInstance) {
@@ -36,6 +47,8 @@ export async function createCoupon(app: FastifyInstance) {
       maxUses,
       minOrderValue,
       isActive,
+      scope,
+      productIds,
     } = request.body
 
     const existing = await prisma.coupon.findUnique({
@@ -55,6 +68,15 @@ export async function createCoupon(app: FastifyInstance) {
         maxUses,
         isActive,
         minOrderValue,
+        products: scope === 'PRODUCTS'
+          ? {
+            createMany: {
+              data: productIds!.map(productId => ({
+                productId,
+              })),
+            },
+          }
+          : undefined,
       },
     })
 

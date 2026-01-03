@@ -117,3 +117,8 @@ export type CouponUsage = Prisma.CouponUsageModel
  * 
  */
 export type HeroSlide = Prisma.HeroSlideModel
+/**
+ * Model CouponProduct
+ * 
+ */
+export type CouponProduct = Prisma.CouponProductModel

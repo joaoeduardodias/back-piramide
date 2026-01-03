@@ -70,7 +70,8 @@ export const ModelName = {
   OrderItem: 'OrderItem',
   Coupon: 'Coupon',
   CouponUsage: 'CouponUsage',
-  HeroSlide: 'HeroSlide'
+  HeroSlide: 'HeroSlide',
+  CouponProduct: 'CouponProduct'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -309,7 +310,8 @@ export const CouponScalarFieldEnum = {
   usedCount: 'usedCount',
   expiresAt: 'expiresAt',
   isActive: 'isActive',
-  createdAt: 'createdAt'
+  createdAt: 'createdAt',
+  scope: 'scope'
 } as const
 
 export type CouponScalarFieldEnum = (typeof CouponScalarFieldEnum)[keyof typeof CouponScalarFieldEnum]
@@ -340,6 +342,14 @@ export const HeroSlideScalarFieldEnum = {
 } as const
 
 export type HeroSlideScalarFieldEnum = (typeof HeroSlideScalarFieldEnum)[keyof typeof HeroSlideScalarFieldEnum]
+
+
+export const CouponProductScalarFieldEnum = {
+  couponId: 'couponId',
+  productId: 'productId'
+} as const
+
+export type CouponProductScalarFieldEnum = (typeof CouponProductScalarFieldEnum)[keyof typeof CouponProductScalarFieldEnum]
 
 
 export const SortOrder = {
