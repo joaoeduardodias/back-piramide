@@ -1,3 +1,4 @@
+/* eslint-disable @stylistic/indent */
 import { auth } from '@/http/middlewares/auth'
 import { prisma } from '@/lib/prisma'
 import type { FastifyInstance } from 'fastify'
@@ -8,10 +9,20 @@ import { BadRequestError } from '../_errors/bad-request-error'
 const updateCouponSchema = z.object({
   code: z.string().optional(),
   value: z.number().positive().optional(),
+  isActive: z.boolean().optional(),
   minOrderValue: z.number().positive().nullable().optional(),
+  scope: z.enum(['ALL_PRODUCTS', 'PRODUCTS']).optional(),
   maxUses: z.number().int().positive().nullable().optional(),
   expiresAt: z.coerce.date().nullable().optional(),
-  isActive: z.boolean().optional(),
+  productIds: z.array(z.uuid()).optional(),
+}).refine(data => {
+  if (data.scope === 'PRODUCTS') {
+    return data.productIds && data.productIds.length > 0
+  }
+  return true
+}, {
+  message: 'Selecione ao menos um produto para este cupom',
+  path: ['productIds'],
 })
 
 const paramsSchema = z.object({
@@ -36,6 +47,8 @@ export async function updateCoupon(app: FastifyInstance) {
       code,
       expiresAt,
       isActive,
+      scope,
+      productIds,
       maxUses,
       minOrderValue,
       value,
@@ -56,6 +69,20 @@ export async function updateCoupon(app: FastifyInstance) {
           maxUses,
           minOrderValue,
           value,
+          products: scope === 'PRODUCTS'
+            ? {
+              deleteMany: {},
+              createMany: {
+                data: productIds!.map(productId => ({
+                  productId,
+                })),
+              },
+            }
+            : {
+              deleteMany: {},
+            },
+          scope,
+
         },
       })
 

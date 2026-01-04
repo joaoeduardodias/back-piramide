@@ -310,6 +310,7 @@ export const CouponScalarFieldEnum = {
   usedCount: 'usedCount',
   expiresAt: 'expiresAt',
   isActive: 'isActive',
+  deletedAt: 'deletedAt',
   createdAt: 'createdAt',
   scope: 'scope'
 } as const

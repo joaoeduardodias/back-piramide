@@ -72,6 +72,10 @@ export async function getCoupons(app: FastifyInstance) {
           expiresAt: true,
           minOrderValue: true,
         },
+        where: {
+          isActive: true,
+          deletedAt: null,
+        },
       }),
 
       prisma.coupon.count(),

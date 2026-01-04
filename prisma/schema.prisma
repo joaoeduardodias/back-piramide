@@ -260,6 +260,7 @@ model Coupon {
   usedCount     Int         @default(0)
   expiresAt     DateTime?
   isActive      Boolean     @default(true)
+  deletedAt     DateTime?
   createdAt     DateTime    @default(now())
   scope         CouponScope @default(ALL_PRODUCTS)
 

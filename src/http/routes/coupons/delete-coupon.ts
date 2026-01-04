@@ -27,10 +27,17 @@ export async function deleteCoupon(app: FastifyInstance) {
       }
 
       try {
-        await prisma.coupon.delete({ where: { id } })
+        await prisma.coupon.update({
+          where: { id },
+          data: {
+            isActive: false,
+            deletedAt: new Date(),
+          },
+        })
 
         return reply.status(204).send()
-      } catch {
+      } catch (err) {
+        console.log(err)
         throw new BadRequestError('Erro ao deletar cupom.')
       }
     })

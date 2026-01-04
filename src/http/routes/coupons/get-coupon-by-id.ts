@@ -36,6 +36,13 @@ export async function getCouponById(app: FastifyInstance) {
               userId: z.string(),
               usedAt: z.date(),
             })),
+            products: z.array(z.object({
+              id: z.uuid(),
+              name: z.string(),
+              brand: z.string().nullable(),
+              price: z.number(),
+              image: z.string(),
+            })),
           }),
 
         }),
@@ -58,6 +65,28 @@ export async function getCouponById(app: FastifyInstance) {
         usages: true,
         usedCount: true,
         value: true,
+        products: {
+          select: {
+            product: {
+              select: {
+                id: true,
+                name: true,
+                brand: {
+                  select: {
+                    name: true,
+                  },
+                },
+                price: true,
+                images: {
+                  select: {
+                    url: true,
+                  },
+                  take: 1,
+                },
+              },
+            },
+          },
+        },
       },
     })
 
@@ -65,6 +94,28 @@ export async function getCouponById(app: FastifyInstance) {
       throw new BadRequestError('Cupom não encontrado.')
     }
 
-    return reply.send({ coupon })
+    const formattedCoupon = {
+      id: coupon.id,
+      code: coupon.code,
+      type: coupon.type,
+      value: coupon.value,
+      isActive: coupon.isActive,
+      maxUses: coupon.maxUses,
+      minOrderValue: coupon.minOrderValue,
+      usedCount: coupon.usedCount,
+      usages: coupon.usages,
+      createdAt: coupon.createdAt,
+      expiresAt: coupon.expiresAt,
+
+      products: coupon.products.map(({ product }) => ({
+        id: product.id,
+        name: product.name,
+        brand: product.brand?.name ?? null,
+        price: product.price,
+        image: product.images[0]?.url ?? null,
+      })),
+    }
+
+    return reply.send({ coupon: formattedCoupon })
   })
 }
