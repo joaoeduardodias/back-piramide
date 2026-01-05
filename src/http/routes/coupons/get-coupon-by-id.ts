@@ -1,6 +1,6 @@
 import { auth } from '@/http/middlewares/auth'
 import { prisma } from '@/lib/prisma'
-import { CouponType } from '@/prisma/generated/enums'
+import { CouponScope, CouponType } from '@/prisma/generated/enums'
 import type { FastifyInstance } from 'fastify'
 import type { ZodTypeProvider } from 'fastify-type-provider-zod'
 import { z } from 'zod/v4'
@@ -23,6 +23,7 @@ export async function getCouponById(app: FastifyInstance) {
             id: z.uuid(),
             code: z.string(),
             type: z.enum(CouponType),
+            scope: z.enum(CouponScope),
             value: z.number(),
             minOrderValue: z.number().nullable(),
             maxUses: z.number().nullable(),
@@ -59,6 +60,7 @@ export async function getCouponById(app: FastifyInstance) {
         expiresAt: true,
         isActive: true,
         maxUses: true,
+        scope: true,
         minOrderValue: true,
         id: true,
         type: true,
@@ -99,6 +101,7 @@ export async function getCouponById(app: FastifyInstance) {
       code: coupon.code,
       type: coupon.type,
       value: coupon.value,
+      scope: coupon.scope,
       isActive: coupon.isActive,
       maxUses: coupon.maxUses,
       minOrderValue: coupon.minOrderValue,
@@ -106,7 +109,6 @@ export async function getCouponById(app: FastifyInstance) {
       usages: coupon.usages,
       createdAt: coupon.createdAt,
       expiresAt: coupon.expiresAt,
-
       products: coupon.products.map(({ product }) => ({
         id: product.id,
         name: product.name,
