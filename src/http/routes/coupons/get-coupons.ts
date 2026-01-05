@@ -78,7 +78,12 @@ export async function getCoupons(app: FastifyInstance) {
         },
       }),
 
-      prisma.coupon.count(),
+      prisma.coupon.count({
+        where: {
+          isActive: true,
+          deletedAt: null,
+        },
+      }),
     ])
     const totalPages = Math.ceil(total / limit)
 

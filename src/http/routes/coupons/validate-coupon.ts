@@ -8,7 +8,7 @@ import { BadRequestError } from '../_errors/bad-request-error'
 const validateCouponSchema = z.object({
   code: z.string(),
   orderTotal: z.number().positive(),
-  productIds: z.array(z.string().uuid()).min(1),
+  productIds: z.array(z.uuid()).min(1),
 })
 
 export async function validateCoupon(app: FastifyInstance) {
