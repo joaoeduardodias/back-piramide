@@ -20,7 +20,7 @@ const orderItemSchema = z.object({
 const createOrderSchema = z.object({
   status: z.enum(OrderStatus).default('PENDING'),
   paymentMethod: z.enum(PaymentMethod),
-  addressId: z.uuid().optional(),
+  addressId: z.uuid().nullish(),
   couponCode: z.string().trim().optional(),
   items: z.array(orderItemSchema).min(1),
 })
@@ -168,7 +168,7 @@ export async function createOrder(app: FastifyInstance) {
                 customerId: user.sub,
                 status,
                 paymentMethod,
-                addressId,
+                addressId: addressId ?? null,
                 subtotal,
                 discount,
                 total,
