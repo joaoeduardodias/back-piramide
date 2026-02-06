@@ -232,6 +232,14 @@ export async function updateProduct(app: FastifyInstance) {
           }
 
           if (body.variants) {
+            const seenSkus = new Set<string>()
+            for (const v of body.variants) {
+              if (seenSkus.has(v.sku)) {
+                throw new BadRequestError('SKU duplicado no payload de variantes.')
+              }
+              seenSkus.add(v.sku)
+            }
+
             if (!body.options && existingProduct.productOptions.length > 0) {
               allowedOptionValueIds = new Set(
                 existingProduct.productOptions.flatMap((po) => po.values.map((v) => v.optionValueId)),
@@ -269,6 +277,18 @@ export async function updateProduct(app: FastifyInstance) {
                   where: { productId: id, sku: v.sku },
                   select: { id: true },
                 }))?.id
+
+              const skuConflict = await tx.productVariant.findFirst({
+                where: {
+                  sku: v.sku,
+                  ...(variantId ? { NOT: { id: variantId } } : {}),
+                },
+                select: { id: true },
+              })
+              if (skuConflict) {
+                throw new BadRequestError('SKU já existe para outra variante.')
+              }
+
               if (!variantId && optionsCount > 0 && !v.optionValueIds) {
                 throw new BadRequestError(
                   'O produto possui options, então novas variantes devem ter optionValueIds.',
