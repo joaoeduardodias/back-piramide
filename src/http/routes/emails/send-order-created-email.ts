@@ -1,7 +1,5 @@
-import { env } from '@/env'
 import { auth } from '@/http/middlewares/auth'
 import { prisma } from '@/lib/prisma'
-import { sendEmail } from '@/services/email/send-email'
 import { formatReal } from '@/utils/format-real'
 import type { FastifyInstance } from 'fastify'
 import type { ZodTypeProvider } from 'fastify-type-provider-zod'
@@ -24,6 +22,7 @@ export async function sendOrderCreatedEmail(app: FastifyInstance) {
         },
       },
     }, async (request, reply) => {
+      console.log('Send order created email endpoint called')
       const { orderId } = request.params
       const { sub } = await request.getCurrentUserId()
       const user = await prisma.user.findUnique({
@@ -123,24 +122,24 @@ export async function sendOrderCreatedEmail(app: FastifyInstance) {
         },
       ]
 
-      await sendEmail({
-        to: {
-          email: env.OWNER_EMAIL,
-          name: 'Piramide Calçados',
-        },
-        subject: `Pedido #${order.number} confirmado`,
-        templateId: 'zr6ke4n66wvlon12',
-        personalization,
-      })
+      // await sendEmail({
+      //   to: {
+      //     email: env.OWNER_EMAIL,
+      //     name: 'Piramide Calçados',
+      //   },
+      //   subject: `Pedido #${order.number} confirmado`,
+      //   templateId: 'zr6ke4n66wvlon12',
+      //   personalization,
+      // })
 
-      await sendEmail({
-        to: {
-          email: order.customer.email,
-          name: order.customer.name,
-        },
-        subject: 'Novo Pedido',
-        templateId: 'z86org8dd81lew13',
-      })
+      // await sendEmail({
+      //   to: {
+      //     email: order.customer.email,
+      //     name: order.customer.name,
+      //   },
+      //   subject: 'Novo Pedido',
+      //   templateId: 'z86org8dd81lew13',
+      // })
 
       return reply.status(204).send()
     })
