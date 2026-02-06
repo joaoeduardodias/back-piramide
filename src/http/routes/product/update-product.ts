@@ -123,6 +123,11 @@ export async function updateProduct(app: FastifyInstance) {
             },
           })
 
+          let allowedOptionValueIds: Set<string> | null = null
+          let optionValueSets: Set<string>[] = []
+          let optionsCount = 0
+          const canUpsertProductOptions = Boolean(body.options)
+
           if (body.categoryIds) {
             const existingCatIds = existingProduct.categories.map((c) => c.categoryId)
             const toAdd = body.categoryIds.filter((cid) => !existingCatIds.includes(cid))
@@ -148,23 +153,95 @@ export async function updateProduct(app: FastifyInstance) {
           }
 
           if (body.options) {
+            const optionValueIdsByOptionId = new Map<string, string[]>()
+            const incomingOptionIds: string[] = []
+
             for (const opt of body.options) {
               const optDb = await tx.option.findUnique({ where: { name: opt.name } })
               if (!optDb) throw new BadRequestError(`Opção "${opt.name}" inválida.`)
 
-              await tx.productOption.upsert({
-                where: { productId_optionId: { productId: id, optionId: optDb.id } },
-                create: { productId: id, optionId: optDb.id },
+              incomingOptionIds.push(optDb.id)
+              const incomingValueIds = opt.values.map((v) => v.id)
+              optionValueIdsByOptionId.set(optDb.id, incomingValueIds)
+
+              if (incomingValueIds.length > 0) {
+                const existingValues = await tx.optionValue.findMany({
+                  where: { id: { in: incomingValueIds }, optionId: optDb.id },
+                  select: { id: true },
+                })
+                if (existingValues.length !== incomingValueIds.length) {
+                  throw new BadRequestError(`Uma ou mais values da opção "${opt.name}" são inválidas.`)
+                }
+              }
+            }
+
+            allowedOptionValueIds = new Set(
+              body.options.flatMap((opt) => opt.values.map((v) => v.id)),
+            )
+            optionValueSets = body.options.map((opt) => new Set(opt.values.map((v) => v.id)))
+            optionsCount = optionValueSets.length
+
+            const existingOptionIds = existingProduct.productOptions.map((po) => po.optionId)
+            const toRemoveOptionIds = existingOptionIds.filter((optId) => !incomingOptionIds.includes(optId))
+
+            if (toRemoveOptionIds.length > 0) {
+              await tx.variantOptionValue.deleteMany({
+                where: {
+                  variant: { productId: id },
+                  optionValue: { optionId: { in: toRemoveOptionIds } },
+                },
+              })
+              await tx.productOption.deleteMany({
+                where: { productId: id, optionId: { in: toRemoveOptionIds } },
+              })
+            }
+
+            for (const [optionId, incomingValueIds] of optionValueIdsByOptionId) {
+              const prodOpt = await tx.productOption.upsert({
+                where: { productId_optionId: { productId: id, optionId } },
+                create: { productId: id, optionId },
                 update: {},
               })
 
-              for (const v of opt.values) {
-                await ensureProductOptionForValue(v.id)
+              const existingOpt = existingProduct.productOptions.find((po) => po.optionId === optionId)
+              const existingValueIds = existingOpt
+                ? existingOpt.values.map((v) => v.optionValueId)
+                : []
+              const removedValueIds = existingValueIds.filter((vId) => !incomingValueIds.includes(vId))
+
+              if (removedValueIds.length > 0) {
+                await tx.variantOptionValue.deleteMany({
+                  where: { variant: { productId: id }, optionValueId: { in: removedValueIds } },
+                })
+              }
+
+              if (incomingValueIds.length > 0) {
+                await tx.productOptionValue.deleteMany({
+                  where: { productOptionId: prodOpt.id, optionValueId: { notIn: incomingValueIds } },
+                })
+              } else {
+                await tx.productOptionValue.deleteMany({
+                  where: { productOptionId: prodOpt.id },
+                })
+              }
+
+              for (const valueId of incomingValueIds) {
+                await ensureProductOptionForValue(valueId)
               }
             }
           }
 
           if (body.variants) {
+            if (!body.options && existingProduct.productOptions.length > 0) {
+              allowedOptionValueIds = new Set(
+                existingProduct.productOptions.flatMap((po) => po.values.map((v) => v.optionValueId)),
+              )
+              optionValueSets = existingProduct.productOptions.map(
+                (po) => new Set(po.values.map((v) => v.optionValueId)),
+              )
+              optionsCount = optionValueSets.length
+            }
+
             const incomingIds: string[] = []
             for (const v of body.variants) {
               if (v.id) {
@@ -192,6 +269,52 @@ export async function updateProduct(app: FastifyInstance) {
                   where: { productId: id, sku: v.sku },
                   select: { id: true },
                 }))?.id
+              if (!variantId && optionsCount > 0 && !v.optionValueIds) {
+                throw new BadRequestError(
+                  'O produto possui options, então novas variantes devem ter optionValueIds.',
+                )
+              }
+              if (v.optionValueIds) {
+                const uniqueIds = new Set(v.optionValueIds)
+                if (uniqueIds.size !== v.optionValueIds.length) {
+                  throw new BadRequestError('Uma variante possui optionValueIds duplicados.')
+                }
+                if (optionsCount === 0) {
+                  throw new BadRequestError('As variantes possuem optionValueIds, mas o produto não possui options.')
+                }
+                if (v.optionValueIds.length !== optionsCount) {
+                  throw new BadRequestError(
+                    'Uma variante deve ter exatamente um optionValueId para cada option.',
+                  )
+                }
+                if (allowedOptionValueIds) {
+                  for (const ovId of v.optionValueIds) {
+                    if (!allowedOptionValueIds.has(ovId)) {
+                      throw new BadRequestError(
+                        `OptionValue id "${ovId}" não pertence às options informadas para este produto.`,
+                      )
+                    }
+                  }
+                }
+                for (const set of optionValueSets) {
+                  let matches = 0
+                  for (const ovId of v.optionValueIds) {
+                    if (set.has(ovId)) matches += 1
+                  }
+                  if (matches !== 1) {
+                    throw new BadRequestError(
+                      'Uma variante deve ter exatamente um optionValueId de cada option.',
+                    )
+                  }
+                }
+              }
+              const optionValueIds = v.optionValueIds
+                ? (
+                  allowedOptionValueIds
+                    ? v.optionValueIds.filter((ovId) => allowedOptionValueIds!.has(ovId))
+                    : v.optionValueIds
+                )
+                : v.optionValueIds
 
               if (variantId) {
                 await tx.productVariant.update({
@@ -203,10 +326,12 @@ export async function updateProduct(app: FastifyInstance) {
                     stock: v.stock ?? 0,
                   },
                 })
-                if (v.optionValueIds && v.optionValueIds.length > 0) {
+                if (optionValueIds) {
                   await tx.variantOptionValue.deleteMany({ where: { variantId } })
-                  for (const ovId of v.optionValueIds) {
-                    await ensureProductOptionForValue(ovId)
+                  for (const ovId of optionValueIds) {
+                    if (canUpsertProductOptions) {
+                      await ensureProductOptionForValue(ovId)
+                    }
                     await tx.variantOptionValue.create({
                       data: { variantId, optionValueId: ovId },
                     })
@@ -222,9 +347,11 @@ export async function updateProduct(app: FastifyInstance) {
                     stock: v.stock ?? 0,
                   },
                 })
-                if (v.optionValueIds && v.optionValueIds.length > 0) {
-                  for (const ovId of v.optionValueIds) {
-                    await ensureProductOptionForValue(ovId)
+                if (optionValueIds) {
+                  for (const ovId of optionValueIds) {
+                    if (canUpsertProductOptions) {
+                      await ensureProductOptionForValue(ovId)
+                    }
                     await tx.variantOptionValue.create({
                       data: { variantId: newVar.id, optionValueId: ovId },
                     })
