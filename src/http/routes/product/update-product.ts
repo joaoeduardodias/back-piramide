@@ -84,6 +84,26 @@ export async function updateProduct(app: FastifyInstance) {
 
       try {
         const updated = await prisma.$transaction(async (tx) => {
+          const ensureProductOptionForValue = async (optionValueId: string) => {
+            const ov = await tx.optionValue.findUnique({
+              where: { id: optionValueId },
+              select: { id: true, optionId: true },
+            })
+            if (!ov) throw new BadRequestError(`OptionValue id "${optionValueId}" inválido.`)
+
+            const prodOpt = await tx.productOption.upsert({
+              where: { productId_optionId: { productId: id, optionId: ov.optionId } },
+              create: { productId: id, optionId: ov.optionId },
+              update: {},
+            })
+
+            await tx.productOptionValue.upsert({
+              where: { productOptionId_optionValueId: { productOptionId: prodOpt.id, optionValueId: ov.id } },
+              create: { productOptionId: prodOpt.id, optionValueId: ov.id },
+              update: {},
+            })
+          }
+
           const pr = await tx.product.update({
             where: { id },
             data: {
@@ -91,7 +111,7 @@ export async function updateProduct(app: FastifyInstance) {
               ...(body.slug && { slug: body.slug }),
               ...(body.description && { description: body.description }),
               ...(body.tags && { tags: body.tags }),
-              ...(body.featured && { featured: body.featured }),
+              ...(body.featured !== undefined && body.featured !== null && { featured: body.featured }),
               ...(body.price && { price: body.price }),
               ...(body.comparePrice === 0 || body.comparePrice === null || body.comparePrice === undefined
                 ? { comparePrice: null }
@@ -132,27 +152,33 @@ export async function updateProduct(app: FastifyInstance) {
               const optDb = await tx.option.findUnique({ where: { name: opt.name } })
               if (!optDb) throw new BadRequestError(`Opção "${opt.name}" inválida.`)
 
-              const prodOpt = await tx.productOption.upsert({
+              await tx.productOption.upsert({
                 where: { productId_optionId: { productId: id, optionId: optDb.id } },
                 create: { productId: id, optionId: optDb.id },
                 update: {},
               })
 
               for (const v of opt.values) {
-                const ov = await tx.optionValue.findUnique({ where: { id: v.id } })
-                if (!ov) throw new BadRequestError(`OptionValue id "${v.id}" inválido.`)
-
-                await tx.productOptionValue.upsert({
-                  where: { productOptionId_optionValueId: { productOptionId: prodOpt.id, optionValueId: ov.id } },
-                  create: { productOptionId: prodOpt.id, optionValueId: ov.id },
-                  update: {},
-                })
+                await ensureProductOptionForValue(v.id)
               }
             }
           }
 
           if (body.variants) {
-            const incomingIds = body.variants.filter((v) => v.id).map((v) => v.id!)
+            const incomingIds: string[] = []
+            for (const v of body.variants) {
+              if (v.id) {
+                incomingIds.push(v.id)
+                continue
+              }
+              const existingBySku = await tx.productVariant.findFirst({
+                where: { productId: id, sku: v.sku },
+                select: { id: true },
+              })
+              if (existingBySku) {
+                incomingIds.push(existingBySku.id)
+              }
+            }
             const toDelete = existingProduct.variants.filter((v) => !incomingIds.includes(v.id))
             if (toDelete.length) {
               await tx.productVariant.deleteMany({
@@ -161,9 +187,15 @@ export async function updateProduct(app: FastifyInstance) {
             }
 
             for (const v of body.variants) {
-              if (v.id) {
+              const variantId = v.id ??
+                (await tx.productVariant.findFirst({
+                  where: { productId: id, sku: v.sku },
+                  select: { id: true },
+                }))?.id
+
+              if (variantId) {
                 await tx.productVariant.update({
-                  where: { id: v.id },
+                  where: { id: variantId },
                   data: {
                     sku: v.sku,
                     price: v.price ?? null,
@@ -171,11 +203,12 @@ export async function updateProduct(app: FastifyInstance) {
                     stock: v.stock ?? 0,
                   },
                 })
-                await tx.variantOptionValue.deleteMany({ where: { variantId: v.id } })
-                if (v.optionValueIds) {
+                if (v.optionValueIds && v.optionValueIds.length > 0) {
+                  await tx.variantOptionValue.deleteMany({ where: { variantId } })
                   for (const ovId of v.optionValueIds) {
+                    await ensureProductOptionForValue(ovId)
                     await tx.variantOptionValue.create({
-                      data: { variantId: v.id, optionValueId: ovId },
+                      data: { variantId, optionValueId: ovId },
                     })
                   }
                 }
@@ -189,8 +222,9 @@ export async function updateProduct(app: FastifyInstance) {
                     stock: v.stock ?? 0,
                   },
                 })
-                if (v.optionValueIds) {
+                if (v.optionValueIds && v.optionValueIds.length > 0) {
                   for (const ovId of v.optionValueIds) {
+                    await ensureProductOptionForValue(ovId)
                     await tx.variantOptionValue.create({
                       data: { variantId: newVar.id, optionValueId: ovId },
                     })

@@ -175,6 +175,21 @@ export async function createProduct(app: FastifyInstance) {
           }
 
           if (body.variants) {
+            const allowedOptionValueIds = new Set<string>(
+              body.options?.flatMap(opt => opt.values.map(v => v.id)) ?? [],
+            )
+            const hasVariantOptionValues = body.variants.some(v => v.optionValueIds?.length)
+
+            if (hasVariantOptionValues && allowedOptionValueIds.size === 0) {
+              throw new BadRequestError('As variantes possuem optionValueIds, mas o produto não possui options.')
+            }
+            if (body.options?.length && !hasVariantOptionValues) {
+              throw new BadRequestError('O produto possui options, então todas as variantes devem ter optionValueIds.')
+            }
+
+            const optionValueSets = body.options?.map(opt => new Set(opt.values.map(v => v.id))) ?? []
+            const optionsCount = optionValueSets.length
+
             const skus = body.variants.map(v => v.sku)
 
             const existingVariants = await tx.productVariant.findMany({
@@ -186,12 +201,55 @@ export async function createProduct(app: FastifyInstance) {
 
             if (existingVariants.length) {
               throw new BadRequestError(
-                `Já existem variants cadastradas com os seguintes SKU(s): ${existingVariants
+                `Já existem opções cadastradas com os seguintes SKU(s): ${existingVariants
                   .map(v => v.sku)
                   .join(', ')}`,
               )
             }
             for (const v of body.variants) {
+              if (body.options?.length) {
+                if (!v.optionValueIds?.length) {
+                  throw new BadRequestError(
+                    'O produto possui opções, então todas as variantes devem ter optionValueIds.',
+                  )
+                }
+                const uniqueIds = new Set(v.optionValueIds)
+                if (uniqueIds.size !== v.optionValueIds.length) {
+                  throw new BadRequestError('Uma variante possui optionValueIds duplicados.')
+                }
+                if (v.optionValueIds.length !== optionsCount) {
+                  throw new BadRequestError(
+                    'Uma variante deve ter exatamente um optionValueId para cada option.',
+                  )
+                }
+                for (const ovId of v.optionValueIds) {
+                  if (!allowedOptionValueIds.has(ovId)) {
+                    throw new BadRequestError(
+                      `OptionValue id "${ovId}" não pertence às options informadas para este produto.`,
+                    )
+                  }
+                }
+                for (const set of optionValueSets) {
+                  let matches = 0
+                  for (const ovId of v.optionValueIds) {
+                    if (set.has(ovId)) matches += 1
+                  }
+                  if (matches !== 1) {
+                    throw new BadRequestError(
+                      'Uma variante deve ter exatamente um optionValueId de cada option.',
+                    )
+                  }
+                }
+              } else if (v.optionValueIds) {
+                for (const ovId of v.optionValueIds) {
+                  if (!allowedOptionValueIds.has(ovId)) {
+                    throw new BadRequestError(
+                      `OptionValue id "${ovId}" não pertence às options informadas para este produto.`,
+                    )
+                  }
+                }
+              }
+
               const newVar = await tx.productVariant.create({
                 data: {
                   productId: prod.id,
@@ -216,7 +274,6 @@ export async function createProduct(app: FastifyInstance) {
 
         return reply.status(201).send({ productId: createdProduct.id })
       } catch (err) {
-        console.error('Erro ao criar produto:', err)
         if (err instanceof BadRequestError) {
           throw err
         }

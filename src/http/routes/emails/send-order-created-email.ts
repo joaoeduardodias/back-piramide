@@ -22,7 +22,6 @@ export async function sendOrderCreatedEmail(app: FastifyInstance) {
         },
       },
     }, async (request, reply) => {
-      console.log('Send order created email endpoint called')
       const { orderId } = request.params
       const { sub } = await request.getCurrentUserId()
       const user = await prisma.user.findUnique({
